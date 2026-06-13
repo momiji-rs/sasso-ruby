@@ -80,7 +80,8 @@ jobs:
           v=$(ruby -Ilib -r sasso/version -e 'print Sasso::VERSION')
           gem build sasso.gemspec -o "pkg/sasso-${v}.gem"
       # OIDC token exchange — no GEM_HOST_API_KEY secret.
-      - uses: rubygems/configure-rubygems-credentials@v1
+      # NB: this action publishes only `vMAJOR.MINOR.PATCH` tags (no moving `@v1`).
+      - uses: rubygems/configure-rubygems-credentials@v2.1.0
       - name: gem push (precompiled platforms, then source fallback)
         run: |
           shopt -s nullglob
