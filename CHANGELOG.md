@@ -8,11 +8,21 @@ notes the exact core crate version it pins.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-06-13
+
+Adopts core crate **v0.3.1**.
+
 ### Changed
 
 - Relicensed to **MIT** only (was MIT OR Apache-2.0), matching the Sass
   ecosystem. The core `sasso` compiler crate remains dual MIT OR Apache-2.0.
   Already-published gem versions retain their original license.
+
+### Fixed
+
+- Via core v0.3.1: compressed output now emits a color's canonical CSS name when
+  it is no longer than the shortest hex (`red` not `#f00`, `aqua` not `#0ff`),
+  matching dart-sass.
 
 ## [0.1.1] - 2026-06-13
 
