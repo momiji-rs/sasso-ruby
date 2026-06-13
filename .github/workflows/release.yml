@@ -1,0 +1,89 @@
+name: Release gem (RubyGems)
+
+# Builds precompiled native gems for every supported platform (via rb-sys-dock),
+# plus a source-compile fallback gem, then pushes them all to RubyGems via
+# Trusted Publishing (OIDC — no API key secret), on a version tag.
+#
+# ONE-TIME setup on rubygems.org BEFORE the first tag (the gem doesn't exist yet,
+# so register a *pending* publisher under your profile → Trusted Publishers):
+#   RubyGem: sasso | Owner: momiji-rs | Repository: sasso-ruby
+#   Workflow: release.yml | Environment: release
+# Also add a "release" environment in the repo (Settings → Environments).
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+
+permissions: {}
+
+jobs:
+  cross-gems:
+    name: cross gem (${{ matrix.platform }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - x86_64-linux
+          - aarch64-linux
+          - x86_64-linux-musl
+          - aarch64-linux-musl
+          - x86_64-darwin
+          - arm64-darwin
+          - x64-mingw-ucrt
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+      # Builds the fat gem for `platform` spanning the listed Ruby minors.
+      - uses: oxidize-rb/actions/cross-gem@v1
+        id: cross-gem
+        with:
+          platform: ${{ matrix.platform }}
+          ruby-versions: "3.1,3.2,3.3,3.4"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cross-gem-${{ matrix.platform }}
+          path: pkg/*-${{ matrix.platform }}.gem
+          if-no-files-found: error
+
+  publish:
+    name: push to RubyGems (OIDC)
+    needs: cross-gems
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write   # mint a short-lived RubyGems token via OIDC (no secret)
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+      - uses: actions/download-artifact@v4
+        with:
+          path: pkg
+          pattern: cross-gem-*
+          merge-multiple: true
+      - name: verify gem version == tag
+        run: |
+          v=$(ruby -Ilib -r sasso/version -e 'print Sasso::VERSION')
+          if [ "v${v}" != "${GITHUB_REF_NAME}" ]; then
+            echo "lib/sasso/version.rb (${v}) != tag (${GITHUB_REF_NAME})"; exit 1
+          fi
+      - name: build source-compile fallback gem
+        run: |
+          v=$(ruby -Ilib -r sasso/version -e 'print Sasso::VERSION')
+          gem build sasso.gemspec -o "pkg/sasso-${v}.gem"
+      # OIDC token exchange — no GEM_HOST_API_KEY secret.
+      - uses: rubygems/configure-rubygems-credentials@v1
+      - name: gem push (precompiled platforms, then source fallback)
+        run: |
+          shopt -s nullglob
+          for g in pkg/sasso-*-*.gem; do echo "pushing $g"; gem push "$g"; done
+          v=$(ruby -Ilib -r sasso/version -e 'print Sasso::VERSION')
+          echo "pushing pkg/sasso-${v}.gem"; gem push "pkg/sasso-${v}.gem"
