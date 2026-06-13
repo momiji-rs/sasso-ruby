@@ -1,0 +1,9 @@
+# frozen_string_literal: true
+
+# Standalone bundle for the comparison benchmark (kept separate from the gem's
+# own Gemfile so the gem gains no dev dependency on the other Sass engines).
+source "https://rubygems.org"
+
+gem "sasso"           # this gem (in-process Rust)
+gem "sass-embedded"   # official dart-sass Ruby host (subprocess + IPC)
+gem "sassc"           # libsass C binding (deprecated; reference only)
