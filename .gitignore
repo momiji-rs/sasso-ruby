@@ -1,0 +1,9 @@
+/target/
+/pkg/
+/tmp/
+Gemfile.lock
+*.bundle
+*.so
+*.dll
+*.dylib
+lib/sasso/sasso.*

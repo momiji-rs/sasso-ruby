@@ -1,0 +1,15 @@
+module Sasso
+  VERSION: String
+  STYLES: Array[Symbol]
+  SYNTAXES: Array[Symbol]
+
+  class Error < StandardError
+  end
+  class CompileError < Error
+  end
+
+  def self.compile_string: (String source, ?style: Symbol, ?syntax: Symbol,
+                            ?indented: bool, ?load_paths: Array[untyped],
+                            ?url: String?, ?alert_ascii: bool) -> String
+  def self.compile: (untyped path, **untyped opts) -> String
+end

@@ -1,0 +1,12 @@
+# Cargo workspace for the sasso Ruby gem's native extension. The gem itself
+# lives in this repo (momiji-rs/sasso-ruby) and depends on the PUBLISHED `sasso`
+# crate from crates.io (an exact `=` pin in ext/sasso/Cargo.toml) — NOT a path
+# dependency on the core repo. See README + docs/RUBY_GEM_PLAN.md in the core repo.
+[workspace]
+members = ["ext/sasso"]
+resolver = "2"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

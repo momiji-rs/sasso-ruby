@@ -1,0 +1,39 @@
+# The Ruby native-extension wrapper: a cdylib around `sasso::compile`, shipped
+# inside the `sasso` gem (NOT published to crates.io). Depends on the PUBLISHED
+# core crate via an exact pin — bump it deliberately to adopt a new core release
+# (the gem version floats independently; see lib/sasso/version.rb).
+[package]
+# Must equal the rake-compiler ExtensionTask name (rb_sys looks the package up
+# by this name). The core compiler is depended on under a RENAMED key
+# (`sasso_core`) below, so the package itself can be named `sasso`.
+name = "sasso"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.74"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[lib]
+# Must equal the rake-compiler ExtensionTask name + create_rust_makefile arg, so
+# the built artifact is lib<name>.{so,bundle} -> require "sasso/sasso".
+name = "sasso"
+crate-type = ["cdylib"]
+
+[dependencies]
+# Build-time only — NOT runtime gem deps, preserving sasso's zero-runtime-dep promise.
+magnus = "0.7"
+# Direct dep (magnus pulls it transitively too) so its `links = "rb"` exposes
+# the `DEP_RB_*` env to OUR build.rs — `rb_sys_env::activate()` needs it, and
+# cargo only forwards a linked dep's metadata to its DIRECT dependents.
+rb-sys = "0.9"
+# The published core compiler, pinned exactly to the API surface this binding
+# targets. Renamed to `sasso_core` so this package can be named `sasso` (a
+# package may not depend on a crate of its own name without a rename).
+sasso_core = { package = "sasso", version = "=0.3.0" }
+
+[build-dependencies]
+rb-sys-env = "0.1"
+
+# NOTE: deliberately NO `panic = "abort"` here. magnus relies on unwinding to
+# turn a Rust panic into a Ruby exception; abort would kill the host Ruby VM.
+# (The workspace [profile.release] supplies lto/strip/codegen-units.)
