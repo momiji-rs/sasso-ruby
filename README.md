@@ -70,13 +70,38 @@ rescue Sasso::CompileError => e
 end
 ```
 
-## Conformance & performance
+## Conformance
 
 The core passes **100% of the *attempted* official sass-spec suite**
 byte-for-byte against dart-sass; see the
-[core repo](https://github.com/momiji-rs/sasso#conformance). Compilation is
-in-process (no IPC), and the engine is heavily perf-tuned (a scoped bump arena,
-reference-counted values).
+[core repo](https://github.com/momiji-rs/sasso#conformance). For the inputs
+below, `sasso`'s output is **byte-identical to `sass-embedded`** (dart-sass).
+
+## Performance
+
+Because `sasso` compiles **in-process** (a direct Rust call — no subprocess, no
+IPC, no Dart VM), it avoids the per-call protocol roundtrip of `sass-embedded`
+and the process-spawn cost paid by any out-of-process compiler.
+
+Compiling the same SCSS (variables, nesting, `@for`, math) on an Apple M2 Max,
+Ruby 3.4.1:
+
+| | `sasso` (this gem) | `sass-embedded` (dart-sass) | `sassc` (libsass) |
+| --- | --: | --: | --: |
+| Warm — small component (256 B) | **13.5 µs** | 129 µs (**9.5×**) | 1151 µs (85×) |
+| Warm — ~180 rules (5.5 KB) | **237 µs** | 915 µs (**3.8×**) | 10178 µs (43×) |
+| Cold start (`require` + first compile) | **1.1 ms** | 38.5 ms (**35×**) | 35.6 ms (32×) |
+
+Parenthesised values are how much slower the other gem is than `sasso`.
+
+- **Per-request compiling** (e.g. a Sinatra route): in-process latency is ~13 µs
+  vs ~129 µs for `sass-embedded`'s pipe roundtrip to its Dart subprocess.
+- **One-shot builds** (e.g. `rails assets:precompile`): the dominant cost is the
+  ~38 ms Dart subprocess spawn, which `sasso` does not pay (~1 ms cold).
+
+The engine is also heavily perf-tuned (a scoped bump arena, reference-counted
+values). Numbers are representative of one machine; run your own with your
+stylesheets.
 
 ## License
 
