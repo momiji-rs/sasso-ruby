@@ -8,6 +8,12 @@ notes the exact core crate version it pins.
 
 ## [Unreleased]
 
+### Changed
+
+- Relicensed to **MIT** only (was MIT OR Apache-2.0), matching the Sass
+  ecosystem. The core `sasso` compiler crate remains dual MIT OR Apache-2.0.
+  Already-published gem versions retain their original license.
+
 ## [0.1.1] - 2026-06-13
 
 Pins the same core crate **v0.3.0**.

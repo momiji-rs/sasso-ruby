@@ -80,4 +80,5 @@ reference-counted values).
 
 ## License
 
-MIT OR Apache-2.0, matching the core compiler.
+MIT, matching the Sass ecosystem (the core `sasso` compiler crate remains
+dual-licensed MIT OR Apache-2.0).

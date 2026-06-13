@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.description = "Embeddable, dependency-free SCSS/Sass compiler aiming at byte-for-byte dart-sass parity, " \
                      "shipped as a Rust native extension (magnus + rb-sys)."
   spec.homepage    = "https://github.com/momiji-rs/sasso-ruby"
-  spec.license     = "MIT OR Apache-2.0"
+  spec.license     = "MIT"
 
   spec.required_ruby_version     = ">= 3.1.0"
   spec.required_rubygems_version = ">= 3.3.22" # clean precompiled-platform resolution
@@ -30,7 +30,7 @@ Gem::Specification.new do |spec|
     "ext/**/Cargo.toml",
     "Cargo.toml", "Cargo.lock",
     "sig/**/*.rbs",
-    "LICENSE-*", "README.md", "CHANGELOG.md",
+    "LICENSE-MIT", "README.md", "CHANGELOG.md",
   ]
   spec.require_paths = ["lib"]
   spec.extensions    = ["ext/sasso/extconf.rb"]
