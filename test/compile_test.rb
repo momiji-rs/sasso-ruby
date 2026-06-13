@@ -43,4 +43,31 @@ class CompileTest < Minitest::Test
       assert_equal "a {\n  b: 1;\n}\n", Sasso.compile(f.path)
     end
   end
+
+  # A file on disk must be able to @use/@import a sibling partial without the
+  # caller spelling out load_paths (the `sass` CLI convention).
+  def test_compile_file_resolves_sibling_import
+    require "tmpdir"
+    Dir.mktmpdir do |dir|
+      File.write(File.join(dir, "_tokens.scss"), "$brand: #3366cc;")
+      main = File.join(dir, "main.scss")
+      File.write(main, %(@use "tokens" as t;\n.btn { color: t.$brand; }\n))
+      css = Sasso.compile(main)
+      assert_includes css, "color: #3366cc;"
+    end
+  end
+
+  # An explicit load_paths: is still honored alongside the implicit entry-file dir.
+  def test_compile_file_keeps_explicit_load_paths
+    require "tmpdir"
+    Dir.mktmpdir do |dir|
+      sub = File.join(dir, "shared")
+      Dir.mkdir(sub)
+      File.write(File.join(sub, "_vars.scss"), "$x: 9px;")
+      main = File.join(dir, "main.scss")
+      File.write(main, %(@use "vars" as v;\n.y { margin: v.$x; }\n))
+      css = Sasso.compile(main, load_paths: [sub])
+      assert_includes css, "margin: 9px;"
+    end
+  end
 end

@@ -8,6 +8,18 @@ notes the exact core crate version it pins.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-06-13
+
+Pins the same core crate **v0.3.0**.
+
+### Fixed
+
+- `Sasso.compile(path)` now searches the entry file's own directory FIRST for
+  relative `@use`/`@forward`/`@import` (the `sass` CLI convention), so a file on
+  disk can import its sibling partials without the caller spelling out
+  `load_paths:`. An explicit `load_paths:` is still honored, after the
+  implicit entry-file directory.
+
 ## [0.1.0] - 2026-06-13
 
 Initial release. In-process SCSS/Sass → CSS via a Rust native extension

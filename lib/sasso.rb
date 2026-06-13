@@ -52,6 +52,10 @@ module Sasso
 
   # Compile the file at `path`. Syntax is inferred from the extension unless
   # overridden; `url:` defaults to `path` so diagnostics get the dart-exact block.
+  #
+  # The entry file's own directory is searched FIRST for relative @use/@forward/
+  # @import (the `sass` CLI convention — a file on disk can always import its
+  # siblings), ahead of any caller-supplied `load_paths:`.
   def compile(path, **opts)
     src = File.read(path)
     inferred =
@@ -60,7 +64,9 @@ module Sasso
       when ".css"  then :css
       else :scss
       end
-    compile_string(src, syntax: inferred, url: path.to_s, **opts)
+    given = Array(opts.delete(:load_paths)).map(&:to_s)
+    load_paths = [File.dirname(path.to_s), *given]
+    compile_string(src, syntax: inferred, url: path.to_s, load_paths: load_paths, **opts)
   end
 
   def validate!(value, allowed, name)
