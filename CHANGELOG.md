@@ -8,6 +8,18 @@ notes the exact core crate version it pins.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-06-14
+
+Adopts core crate **v0.5.1**.
+
+### Fixed
+
+- Via core v0.5.1: source maps now map the `@media`/`@at-root`/`@supports`
+  bubbled parent selector and the `@supports` header, byte-exact to dart-sass —
+  fixing a 0.5.0 (= gem 0.2.0 pinned 0.4.0) compressed-map gap for `@media`/
+  `@at-root`-bubbled rules. Compressed output also gains dart-faithful whitespace
+  for `@media`/`@supports` preludes (`@media(min-width: 1px)`, `(a)and (b)`).
+
 ## [0.2.0] - 2026-06-14
 
 Adopts core crate **v0.4.0**.

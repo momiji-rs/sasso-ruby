@@ -101,6 +101,17 @@ class CompileTest < Minitest::Test
     assert_instance_of String, Sasso.compile_string("a { b: 1px }")
   end
 
+  # Regression guard for the core v0.5.1 bubbled-selector source-map fix: a
+  # `@media` nested in a style rule maps the bubbled `.a` copy back to the
+  # original selector, so the compressed map keeps all 7 segments dart-sass
+  # 1.101 emits (a naive same-source-line dedup would drop two).
+  def test_compressed_source_map_bubbled_media_matches_dart
+    scss = ".a {\n  color: red;\n  @media screen { width: 1px; }\n  height: 2px;\n}\n"
+    r = Sasso.compile_string(scss, source_map: true, style: :compressed, url: "in.scss")
+    assert_equal ".a{color:red}@media screen{.a{width:1px}}.a{height:2px}", r.css
+    assert_equal "AAAA,GACE,UACA,cAFF,GAEkB,WAFlB,GAGE", r.source_map["mappings"]
+  end
+
   def test_compile_file_supports_source_map
     require "tmpdir"
     Dir.mktmpdir do |dir|
