@@ -70,4 +70,45 @@ class CompileTest < Minitest::Test
       assert_includes css, "margin: 9px;"
     end
   end
+
+  # --- source maps ---
+
+  def test_source_map_returns_compile_result_with_v3_map
+    scss = ".a {\n  color: red;\n  .b { width: 10px; }\n}\n"
+    r = Sasso.compile_string(scss, source_map: true, url: "in.scss")
+
+    assert_instance_of Sasso::CompileResult, r
+    # css is identical to the plain-String return
+    assert_equal Sasso.compile_string(scss), r.css
+    map = r.source_map
+    assert_equal 3, map["version"]
+    assert_equal ["in.scss"], map["sources"]
+    assert_equal [], map["names"]
+    refute_empty map["mappings"]
+    # mappings is base64-VLQ shaped
+    assert_match(%r{\A[A-Za-z0-9+/]*[;,]?(?:[A-Za-z0-9+/]*[;,]?)*\z}, map["mappings"])
+    # no sourcesContent unless asked
+    refute map.key?("sourcesContent")
+  end
+
+  def test_source_map_include_sources_embeds_content
+    scss = ".a { color: red; }\n"
+    r = Sasso.compile_string(scss, source_map: true, source_map_include_sources: true, url: "in.scss")
+    assert_equal [scss], r.source_map["sourcesContent"]
+  end
+
+  def test_compile_string_without_source_map_returns_plain_string
+    assert_instance_of String, Sasso.compile_string("a { b: 1px }")
+  end
+
+  def test_compile_file_supports_source_map
+    require "tmpdir"
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, "main.scss")
+      File.write(path, ".a { color: red; }\n")
+      r = Sasso.compile(path, source_map: true)
+      assert_instance_of Sasso::CompileResult, r
+      assert_equal 3, r.source_map["version"]
+    end
+  end
 end

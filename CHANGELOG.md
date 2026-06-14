@@ -8,6 +8,20 @@ notes the exact core crate version it pins.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-14
+
+Adopts core crate **v0.4.0**.
+
+### Added
+
+- **Source map support.** `Sasso.compile_string(source, source_map: true)` (and
+  `Sasso.compile(path, source_map: true)`) returns a `Sasso::CompileResult` with
+  `#css` (the CSS String) and `#source_map` (the Source Map v3 as a parsed Hash:
+  `"version" => 3`, `"mappings"`, `"sources"`, …). Pass
+  `source_map_include_sources: true` to embed the full source text in the map's
+  `sourcesContent`. Without `source_map:` the methods still return a plain CSS
+  String (backwards compatible). The mappings are byte-identical to dart-sass.
+
 ## [0.1.2] - 2026-06-13
 
 Adopts core crate **v0.3.1**.

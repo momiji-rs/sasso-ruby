@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "json"
 require_relative "sasso/version"
 
 module Sasso
@@ -10,6 +11,11 @@ module Sasso
   # diagnostic (the same text the `sasso` CLI prints) when a `url:` is given,
   # otherwise the legacy `Error: <msg> (line:col)` one-liner.
   class CompileError < Error; end
+
+  # Returned by `compile_string`/`compile` when `source_map: true`. `#css` is the
+  # CSS String (identical to the plain-String return); `#source_map` is the
+  # Source Map v3 as a parsed Hash (`"version" => 3`, `"mappings"`, `"sources"`, …).
+  CompileResult = Struct.new(:css, :source_map)
 end
 
 # Load the compiled native extension. Precompiled ("fat") gems place a copy per
@@ -41,13 +47,18 @@ module Sasso
   #
   # Raises Sasso::CompileError on a compile failure; ArgumentError on bad options.
   def compile_string(source, style: :expanded, syntax: :scss, indented: false,
-                     load_paths: [], url: nil, alert_ascii: false)
+                     load_paths: [], url: nil, alert_ascii: false,
+                     source_map: false, source_map_include_sources: false)
     syntax = :sass if indented
     validate!(style, STYLES, :style)
     validate!(syntax, SYNTAXES, :syntax)
     paths = Array(load_paths).map(&:to_s)
-    Sasso::Native._compile(String(source), style.to_s, syntax.to_s,
-                           paths, url && url.to_s, !alert_ascii)
+    src = String(source)
+    return Sasso::Native._compile(src, style.to_s, syntax.to_s, paths, url && url.to_s, !alert_ascii) unless source_map
+
+    css, map_json = Sasso::Native._compile_with_map(src, style.to_s, syntax.to_s, paths,
+                                                    url && url.to_s, !alert_ascii, source_map_include_sources)
+    CompileResult.new(css, JSON.parse(map_json))
   end
 
   # Compile the file at `path`. Syntax is inferred from the extension unless

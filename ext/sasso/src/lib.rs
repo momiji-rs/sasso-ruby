@@ -64,10 +64,56 @@ fn native_compile(
     sasso::compile(&source, &opts).map_err(|e| compile_error(ruby, e.to_string()))
 }
 
+/// Source-map variant: returns `[css, source_map_json]` (a Ruby Array via the
+/// Rust tuple). `include_sources` populates the map's `sourcesContent`.
+fn native_compile_with_map(
+    ruby: &Ruby,
+    source: String,
+    style: String,
+    syntax: String,
+    load_paths: RArray,
+    url: Option<String>,
+    unicode: bool,
+    include_sources: bool,
+) -> Result<(String, String), Error> {
+    let mut opts = sasso::Options::default()
+        .with_style(if style == "compressed" {
+            sasso::OutputStyle::Compressed
+        } else {
+            sasso::OutputStyle::Expanded
+        })
+        .with_syntax(match syntax.as_str() {
+            "sass" => sasso::Syntax::Sass,
+            "css" => sasso::Syntax::Css,
+            _ => sasso::Syntax::Scss,
+        })
+        .with_unicode(unicode)
+        .with_source_map_include_sources(include_sources);
+
+    if let Some(ref u) = url {
+        opts = opts.with_url(u);
+    }
+
+    let paths: Vec<PathBuf> = load_paths
+        .to_vec::<String>()?
+        .into_iter()
+        .map(PathBuf::from)
+        .collect();
+    let importer = sasso::FsImporter::new(paths.clone());
+    if !paths.is_empty() {
+        opts = opts.with_importer(&importer);
+    }
+
+    let result =
+        sasso::compile_with_source_map(&source, &opts).map_err(|e| compile_error(ruby, e.to_string()))?;
+    Ok((result.css, result.source_map.to_json()))
+}
+
 #[magnus::init]
 fn init(ruby: &Ruby) -> Result<(), Error> {
     let module = ruby.define_module("Sasso")?;
     let native = module.define_module("Native")?;
     native.define_module_function("_compile", function!(native_compile, 6))?;
+    native.define_module_function("_compile_with_map", function!(native_compile_with_map, 7))?;
     Ok(())
 }
