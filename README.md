@@ -70,6 +70,17 @@ rescue Sasso::CompileError => e
 end
 ```
 
+## Framework integrations
+
+Using a Ruby web framework? These drop-in gems build on this one and compile
+your Sass/SCSS **in-process** (no Node, no Dart, no subprocess), byte-for-byte
+identical to dart-sass — typically ~6–7× faster per compile than the Node `sass`
+default:
+
+- **Rails** (Propshaft + Sprockets) — [`sasso-rails`](https://github.com/momiji-rs/sasso-rails)
+- **Bridgetown** — [`bridgetown-sasso`](https://github.com/momiji-rs/bridgetown-sasso)
+- **Hanami** (2.1+) — [`hanami-sasso`](https://github.com/momiji-rs/hanami-sasso)
+
 ## Conformance
 
 The core passes **100% of the *attempted* official sass-spec suite**
