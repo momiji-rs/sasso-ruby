@@ -8,6 +8,18 @@ notes the exact core crate version it pins.
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-06-14
+
+Adopts core crate **v0.5.2**.
+
+### Fixed
+
+- Via core v0.5.2: expanded output now emits dart-faithful `@at-root`
+  group-separation blank lines — one blank at a hoist→resume boundary that ends
+  in a style rule, with nested-`@at-root` chains and a rule + its own bubbled
+  `@media` kept contiguous (no more missing or over-emitted blanks). Byte-exact
+  to dart-sass; compressed output is unaffected.
+
 ## [0.2.1] - 2026-06-14
 
 Adopts core crate **v0.5.1**.

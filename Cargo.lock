@@ -239,14 +239,14 @@ dependencies = [
  "magnus",
  "rb-sys",
  "rb-sys-env",
- "sasso 0.5.1",
+ "sasso 0.5.2",
 ]
 
 [[package]]
 name = "sasso"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7322172fdfc3d04685de2815ffad897f85bfca86eed1e661242691aa15be38a"
+checksum = "cd0695e62b0b86e3ac26ddb5a02b2341dbb150438514c6744840ffeadffb6c85"
 
 [[package]]
 name = "seq-macro"

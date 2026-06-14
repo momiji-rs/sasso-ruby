@@ -112,6 +112,13 @@ class CompileTest < Minitest::Test
     assert_equal "AAAA,GACE,UACA,cAFF,GAEkB,WAFlB,GAGE", r.source_map["mappings"]
   end
 
+  # Regression guard for the core v0.5.2 @at-root group-separation fix: expanded
+  # output gets one blank line before the resumed parent rule (byte-exact dart).
+  def test_at_root_group_separation_blank_line
+    scss = ".a {\n  x: 1;\n  @at-root .b {\n    y: 2;\n  }\n  z: 3;\n}\n"
+    assert_equal ".a {\n  x: 1;\n}\n.b {\n  y: 2;\n}\n\n.a {\n  z: 3;\n}\n", Sasso.compile_string(scss)
+  end
+
   def test_compile_file_supports_source_map
     require "tmpdir"
     Dir.mktmpdir do |dir|
