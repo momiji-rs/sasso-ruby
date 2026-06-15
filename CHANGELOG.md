@@ -8,6 +8,21 @@ notes the exact core crate version it pins.
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-06-15
+
+Adopts core crate **v0.5.3**.
+
+### Fixed
+
+- Via core v0.5.3: a `!default` assignment no longer evaluates its right-hand
+  side when the variable already holds a non-null value (dart-sass
+  short-circuits first), fixing a spurious "incompatible units" error in
+  Bootstrap-on-Shopware setups.
+- Via core v0.5.3: legacy `rgb()`/`hsl()` now preserve the caller's
+  `rgba`/`hsla` spelling in special-value passthroughs (e.g.
+  `rgba(var(--bs-body-color-rgb), …)`), matching dart-sass instead of
+  normalizing the name down to `rgb`/`hsl`.
+
 ## [0.2.2] - 2026-06-14
 
 Adopts core crate **v0.5.2**.
