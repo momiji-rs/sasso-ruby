@@ -8,6 +8,16 @@ notes the exact core crate version it pins.
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-06-15
+
+### Changed
+
+- Adopt core **sasso 0.6.0**. The core release is a breaking change to the
+  Rust `Importer` trait (two-phase `canonicalize`/`load`), but the gem exposes
+  **no userland importer** — it builds the built-in `FsImporter` only — so this
+  is a recompile-only bump with **no change to the gem's Ruby API** (the same
+  `Sasso.compile` / `Sasso.compile_string` with `load_paths:` / `source_map:`).
+
 ## [0.2.3] - 2026-06-15
 
 Adopts core crate **v0.5.3**.
