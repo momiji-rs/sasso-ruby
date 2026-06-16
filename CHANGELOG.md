@@ -8,6 +8,15 @@ notes the exact core crate version it pins.
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-06-16
+
+### Changed
+
+- Adopt core **sasso 0.6.1** (recompile-only; the gem's Ruby API is unchanged).
+  Picks up the upstream fix where a relative `meta.load-css` inside a first-class
+  mixin (`meta.get-mixin` + `meta.apply`) resolves against the mixin's defining
+  file rather than the caller's.
+
 ## [0.2.4] - 2026-06-15
 
 ### Changed
