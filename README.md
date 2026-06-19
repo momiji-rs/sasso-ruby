@@ -1,11 +1,8 @@
 # sasso (Ruby)
 
-In-process **SCSS / Sass → CSS** compilation for Ruby, backed by
-[**sasso**](https://github.com/momiji-rs/sasso) — a pure-Rust, dependency-free
-dart-sass alternative that targets **byte-for-byte parity** with current
-dart-sass. Shipped as a native extension (Rust via [magnus](https://github.com/matsadler/magnus)
-+ [rb-sys](https://github.com/oxidize-rb/rb-sys)); no Node, no subprocess, no
-Dart VM.
+[![Gem Version](https://badge.fury.io/rb/sasso.svg?icon=si%3Arubygems)](https://badge.fury.io/rb/sasso)
+
+In-process **SCSS / Sass → CSS** compilation for Ruby, backed by [**sasso**](https://github.com/momiji-rs/sasso) — a pure-Rust, dependency-free dart-sass alternative that targets **byte-for-byte parity** with current dart-sass. Shipped as a native extension (Rust via [magnus](https://github.com/matsadler/magnus) + [rb-sys](https://github.com/oxidize-rb/rb-sys)); no Node, no subprocess, no Dart VM.
 
 > This gem is the Ruby binding. The compiler core lives in the separate
 > [`momiji-rs/sasso`](https://github.com/momiji-rs/sasso) repo (crate on
