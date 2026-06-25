@@ -8,6 +8,17 @@ notes the exact core crate version it pins.
 
 ## [Unreleased]
 
+## [0.2.6] - 2026-06-25
+
+### Changed
+
+- Adopt core **sasso 0.6.2** (recompile-only; the gem's Ruby API is unchanged).
+  Picks up the upstream fix where **compressed** output now emits the shortest
+  equivalent legacy-color form, matching dart-sass 1.101.0. A computed color such
+  as `darken(#336699, 10%)` now compiles to `hsl(210,50%,30%)` instead of the
+  longer `rgb(38.25,76.5,114.75)`, and an integer-rgb-equivalent hsl literal
+  (`hsl(210, 50%, 40%)`) collapses to `#369`. Expanded output is unchanged.
+
 ## [0.2.5] - 2026-06-16
 
 ### Changed

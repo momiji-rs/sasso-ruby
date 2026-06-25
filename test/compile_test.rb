@@ -18,6 +18,16 @@ class CompileTest < Minitest::Test
     assert_equal "a{b:1px}", Sasso.compile_string("a { b: 1px }", style: :compressed)
   end
 
+  # Core sasso 0.6.2: compressed output emits the shortest equivalent legacy
+  # color form (matching dart-sass 1.101.0). A binding-level guard that the
+  # adopted core behavior is surfaced through the gem.
+  def test_compressed_color_shortest_form
+    assert_equal "a{x:hsl(210,50%,30%)}",
+                 Sasso.compile_string("a{x:darken(#336699,10%)}", style: :compressed)
+    assert_equal "a{x:#369}",
+                 Sasso.compile_string("a{x:hsl(210,50%,40%)}", style: :compressed)
+  end
+
   def test_unit_arithmetic
     assert_equal "a {\n  w: 16px;\n}\n", Sasso.compile_string("a{w:8px * 2}")
   end
