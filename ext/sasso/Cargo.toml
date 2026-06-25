@@ -29,7 +29,7 @@ rb-sys = "0.9"
 # The published core compiler, pinned exactly to the API surface this binding
 # targets. Renamed to `sasso_core` so this package can be named `sasso` (a
 # package may not depend on a crate of its own name without a rename).
-sasso_core = { package = "sasso", version = "=0.6.2" }
+sasso_core = { package = "sasso", version = "=0.6.3" }
 
 [build-dependencies]
 rb-sys-env = "0.1"

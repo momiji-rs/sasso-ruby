@@ -8,6 +8,18 @@ notes the exact core crate version it pins.
 
 ## [Unreleased]
 
+## [0.2.7] - 2026-06-25
+
+### Changed
+
+- Adopt core **sasso 0.6.3** (recompile-only; the gem's Ruby API is unchanged).
+  `Sasso.compile`/`Sasso.compile_string` now return the serialized stylesheet
+  with **no trailing newline**, byte-for-byte matching dart-sass's library API
+  (`sass` embedded / `compileString().css`). Previously expanded output carried
+  a stray trailing newline; compressed output is unchanged (it never had one).
+  If you write the result straight to a `.css` file and want the conventional
+  trailing newline, append `"\n"` yourself (most asset pipelines already do).
+
 ## [0.2.6] - 2026-06-25
 
 ### Changed

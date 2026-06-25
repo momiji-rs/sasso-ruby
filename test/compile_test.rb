@@ -4,7 +4,7 @@ require_relative "test_helper"
 
 class CompileTest < Minitest::Test
   def test_basic_expanded
-    assert_equal "a {\n  b: 1px;\n}\n", Sasso.compile_string("a{b:1px}")
+    assert_equal "a {\n  b: 1px;\n}", Sasso.compile_string("a{b:1px}")
   end
 
   def test_variables_and_nesting
@@ -18,6 +18,14 @@ class CompileTest < Minitest::Test
     assert_equal "a{b:1px}", Sasso.compile_string("a { b: 1px }", style: :compressed)
   end
 
+  # Core sasso 0.6.3: the library API returns the stylesheet with NO trailing
+  # newline (byte-for-byte dart-sass's library API). The CLI/asset pipelines
+  # re-add one; the gem itself must not.
+  def test_no_trailing_newline
+    refute Sasso.compile_string("a{b:1px}").end_with?("\n"), "expanded must not end with a newline"
+    refute Sasso.compile_string("a{b:1px}", style: :compressed).end_with?("\n"), "compressed must not end with a newline"
+  end
+
   # Core sasso 0.6.2: compressed output emits the shortest equivalent legacy
   # color form (matching dart-sass 1.101.0). A binding-level guard that the
   # adopted core behavior is surfaced through the gem.
@@ -29,12 +37,12 @@ class CompileTest < Minitest::Test
   end
 
   def test_unit_arithmetic
-    assert_equal "a {\n  w: 16px;\n}\n", Sasso.compile_string("a{w:8px * 2}")
+    assert_equal "a {\n  w: 16px;\n}", Sasso.compile_string("a{w:8px * 2}")
   end
 
   def test_indented_syntax
     css = Sasso.compile_string("a\n  b: 1px\n", indented: true)
-    assert_equal "a {\n  b: 1px;\n}\n", css
+    assert_equal "a {\n  b: 1px;\n}", css
   end
 
   def test_compile_error_is_raised
@@ -50,7 +58,7 @@ class CompileTest < Minitest::Test
     require "tempfile"
     Tempfile.create(["t", ".scss"]) do |f|
       f.write("$x:1;a{b:$x}"); f.flush
-      assert_equal "a {\n  b: 1;\n}\n", Sasso.compile(f.path)
+      assert_equal "a {\n  b: 1;\n}", Sasso.compile(f.path)
     end
   end
 
@@ -126,7 +134,7 @@ class CompileTest < Minitest::Test
   # output gets one blank line before the resumed parent rule (byte-exact dart).
   def test_at_root_group_separation_blank_line
     scss = ".a {\n  x: 1;\n  @at-root .b {\n    y: 2;\n  }\n  z: 3;\n}\n"
-    assert_equal ".a {\n  x: 1;\n}\n.b {\n  y: 2;\n}\n\n.a {\n  z: 3;\n}\n", Sasso.compile_string(scss)
+    assert_equal ".a {\n  x: 1;\n}\n.b {\n  y: 2;\n}\n\n.a {\n  z: 3;\n}", Sasso.compile_string(scss)
   end
 
   def test_compile_file_supports_source_map
