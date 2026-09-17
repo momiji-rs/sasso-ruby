@@ -33,7 +33,10 @@ ways listed below._
 
 The gem's Ruby API is unchanged, but the CSS it emits moved with the core. If
 you byte-compare output — snapshot tests, asset digests, build caches — expect
-diffs. The CSS is equivalent; only its spelling changed.
+diffs. Every change below is **serialization only** — the CSS still means what
+it meant — with **one exception, the first**: `whiteness()` / `blackness()` stop
+being evaluated, which makes the declaration around them invalid, so a browser
+drops it. That one is worth grepping for; the rest are safe to re-baseline.
 
 - **Global `whiteness()` / `blackness()` are no longer built-ins** (core 0.9.0):
   they are `sass:color`-only, so the bare call is now an unknown function and
