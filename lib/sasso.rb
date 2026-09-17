@@ -52,12 +52,19 @@ module Sasso
     syntax = :sass if indented
     validate!(style, STYLES, :style)
     validate!(syntax, SYNTAXES, :syntax)
-    paths = Array(load_paths).map(&:to_s)
-    src = String(source)
-    return Sasso::Native._compile(src, style.to_s, syntax.to_s, paths, url && url.to_s, !alert_ascii) unless source_map
+    # A positional Hash, not keyword arguments: `_compile` is a C function and
+    # has no keyword parameters, so the braces say what actually crosses the ABI.
+    css, map_json = Sasso::Native._compile(String(source), {
+                                             style: style.to_s,
+                                             syntax: syntax.to_s,
+                                             load_paths: Array(load_paths).map(&:to_s),
+                                             url: url && url.to_s,
+                                             unicode: !alert_ascii,
+                                             source_map: source_map,
+                                             source_map_include_sources: source_map_include_sources,
+                                           })
+    return css unless source_map
 
-    css, map_json = Sasso::Native._compile_with_map(src, style.to_s, syntax.to_s, paths,
-                                                    url && url.to_s, !alert_ascii, source_map_include_sources)
     CompileResult.new(css, JSON.parse(map_json))
   end
 
