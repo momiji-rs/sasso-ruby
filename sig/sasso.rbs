@@ -1,15 +1,42 @@
 module Sasso
   VERSION: String
+  CORE_VERSION: String
   STYLES: Array[Symbol]
   SYNTAXES: Array[Symbol]
+  WARNING_KEYS: Array[Symbol]
+
+  # One @warn / @debug / deprecation diagnostic, as handed to `on_warn:`.
+  type warning = {
+    kind: Symbol,
+    deprecation: bool,
+    deprecation_id: String,
+    message: String,
+    formatted: String,
+    url: String,
+    line: Integer,
+    path: String,
+  }
 
   class Error < StandardError
   end
   class CompileError < Error
   end
 
+  # `Struct.new(:css, :source_map)`. The constructor is spelled out because an
+  # RBS class without one inherits `Object`'s zero-argument `new`, which would
+  # reject the two-argument call the implementation makes.
+  class CompileResult < Struct[untyped]
+    attr_reader css: String
+    attr_reader source_map: Hash[String, untyped]
+
+    def initialize: (String css, Hash[String, untyped] source_map) -> void
+  end
+
   def self.compile_string: (String source, ?style: Symbol, ?syntax: Symbol,
                             ?indented: bool, ?load_paths: Array[untyped],
-                            ?url: String?, ?alert_ascii: bool) -> String
-  def self.compile: (untyped path, **untyped opts) -> String
+                            ?url: String?, ?alert_ascii: bool,
+                            ?source_map: bool, ?source_map_include_sources: bool,
+                            ?charset: bool, ?quiet: bool, ?quiet_deps: bool,
+                            ?on_warn: (^(warning) -> void)?) -> (String | CompileResult)
+  def self.compile: (untyped path, **untyped opts) -> (String | CompileResult)
 end

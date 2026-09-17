@@ -9,6 +9,17 @@ bundle install
 bundle exec ruby compare.rb
 ```
 
+That measures the **published** `sasso` gem. To measure this working tree — which
+is what the main README's table reports — point `SASSO_PATH` at the repo root:
+
+```sh
+cd benchmark
+SASSO_PATH=.. bundle install && SASSO_PATH=.. bundle exec ruby compare.rb
+```
+
+Run `bundle exec rake compile` in the repo root first, so the extension being
+timed is the one you just changed.
+
 It reports, for the same SCSS (no deprecated features, so all three do equal
 work):
 
