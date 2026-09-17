@@ -142,18 +142,20 @@ fn native_compile(ruby: &Ruby, source: String, opts: RHash) -> Result<RArray, Er
 
     // "stderr" leaves `Options::warn` unset, which is what makes the core print
     // its own dart-style block — the default path installs no handler and pays
-    // nothing. Only "capture" allocates.
-    let captured: Rc<RefCell<Vec<Warning>>> = Rc::new(RefCell::new(Vec::new()));
+    // nothing, not even the sink's allocation. Only "capture" allocates.
+    let mut captured: Option<Rc<RefCell<Vec<Warning>>>> = None;
     match opt::<String>(ruby, opts, "warnings")?
         .unwrap_or_default()
         .as_str()
     {
         "silence" => copts = copts.with_warn_handler(Rc::new(|_| {})),
         "capture" => {
-            let sink = Rc::clone(&captured);
+            let sink: Rc<RefCell<Vec<Warning>>> = Rc::new(RefCell::new(Vec::new()));
+            let handler = Rc::clone(&sink);
             copts = copts.with_warn_handler(Rc::new(move |event: &sasso::WarnEvent<'_>| {
-                sink.borrow_mut().push(Warning::record(event));
+                handler.borrow_mut().push(Warning::record(event));
             }));
+            captured = Some(sink);
         }
         _ => {}
     }
@@ -183,7 +185,7 @@ fn native_compile(ruby: &Ruby, source: String, opts: RHash) -> Result<RArray, Er
     };
 
     // Only ever non-empty under "capture".
-    let recorded = captured.take();
+    let recorded = captured.map(|sink| sink.take()).unwrap_or_default();
     let warnings = ruby.ary_new_capa(recorded.len());
     for warning in recorded {
         warnings.push(warning.into_hash(ruby)?)?;
