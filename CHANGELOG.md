@@ -87,7 +87,9 @@ diffs. The CSS is equivalent; only its spelling changed.
   `Sasso::WARNING_KEYS`, which replaces the stderr printing rather than
   duplicating it. `:formatted` carries the full dart-style block, so the
   compiler's own rendering can go straight into an application logger.
-  Mutually exclusive with `quiet:`.
+  Mutually exclusive with `quiet:`. A compile that warns and then fails delivers
+  its warnings before raising `Sasso::CompileError`, the way dart-sass hands them
+  to its logger before throwing.
 - **`Sasso::CORE_VERSION`** — the bundled compiler crate's version, read from
   the linked binary so it cannot drift from what is loaded.
 

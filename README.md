@@ -94,6 +94,10 @@ Sasso.compile_string(scss, url: "in.scss", on_warn: ->(d) {
 })
 ```
 
+A compile that warns and then fails delivers its warnings to `on_warn:` first and
+raises `Sasso::CompileError` after, so the callable — the only thing printing them
+at that point — never loses one.
+
 Each diagnostic is a Hash of `Sasso::WARNING_KEYS`: `:kind` (`:warn`/`:debug`),
 `:deprecation`, `:deprecation_id`, `:message`, `:formatted`, `:url`, `:line` and
 `:path`. `:url` is dart's display form of the file; `:path` identifies it (the

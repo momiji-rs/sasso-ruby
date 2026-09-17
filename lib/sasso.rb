@@ -73,7 +73,7 @@ module Sasso
     validate!(syntax, SYNTAXES, :syntax)
     # A positional Hash, not keyword arguments: `_compile` is a C function and
     # has no keyword parameters, so the braces say what actually crosses the ABI.
-    css, map_json, diagnostics = Sasso::Native._compile(String(source), {
+    css, map_json, diagnostics, error = Sasso::Native._compile(String(source), {
                                                        style: style.to_s,
                                                        syntax: syntax.to_s,
                                                        load_paths: Array(load_paths).map(&:to_s),
@@ -85,7 +85,12 @@ module Sasso
                                                        quiet_deps: quiet_deps,
                                                        warnings: warnings_mode(quiet, on_warn),
                                                      })
+    # Deliver first, raise second: a compile can warn and then fail, and those
+    # warnings are the caller's only copy once `on_warn:` has taken over from
+    # the compiler's own printing. The native side hands the failure back as a
+    # String for exactly this reason.
     diagnostics.each { |d| on_warn.call(d) } if on_warn
+    raise CompileError, error if error
     return css unless source_map
 
     CompileResult.new(css, JSON.parse(map_json))

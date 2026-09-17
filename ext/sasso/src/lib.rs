@@ -11,25 +11,11 @@
 //! Importer policy (v1): a built-in Rust `FsImporter` driven by `load_paths`.
 //! A Ruby-callback importer is deferred (GC-pinning + GVL re-entrancy hazards).
 
-use magnus::{
-    function, prelude::*, value::ReprValue, Error, ExceptionClass, RArray, RHash, RModule, Ruby,
-    TryConvert,
-};
+use magnus::{function, prelude::*, value::ReprValue, Error, RArray, RHash, Ruby, TryConvert};
 use sasso_core as sasso; // the core crate, renamed in Cargo.toml to free the `sasso` package name
 use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::Rc;
-
-/// `Sasso::CompileError` (defined in lib/sasso.rb, loaded before this ext) for
-/// a rescuable raise; falls back to `RuntimeError` if the lookup ever fails.
-fn compile_error(ruby: &Ruby, msg: String) -> Error {
-    let klass = ruby
-        .class_object()
-        .const_get::<_, RModule>("Sasso")
-        .and_then(|m| m.const_get::<_, ExceptionClass>("CompileError"))
-        .unwrap_or_else(|_| ruby.exception_runtime_error());
-    Error::new(klass, msg)
-}
 
 /// Read one option out of the hash. A missing key and an explicit `nil` read
 /// the same, so the Ruby wrapper can pass a key through unconditionally.
@@ -106,8 +92,14 @@ impl Warning {
 }
 
 /// Flat native ABI:
-/// `_compile(source, opts) -> [css, source_map_json_or_nil, warnings]`.
-/// Never panics across FFI — every failure is a raised Ruby exception.
+/// `_compile(source, opts) -> [css, source_map_json, warnings, error]`.
+///
+/// A compile failure RETURNS its message in `error` rather than raising here,
+/// so the recorded warnings come back with it: `lib/sasso.rb` delivers them to
+/// `on_warn:` and then raises `Sasso::CompileError`. dart-sass's logger sees the
+/// warnings a failing compile raised too, and swallowing them would be worse
+/// than not forwarding them — under `on_warn:` nothing else prints them.
+/// Never panics across FFI — every other failure is a raised Ruby exception.
 fn native_compile(ruby: &Ruby, source: String, opts: RHash) -> Result<RArray, Error> {
     let style = opt::<String>(ruby, opts, "style")?.unwrap_or_default();
     let syntax = opt::<String>(ruby, opts, "syntax")?.unwrap_or_default();
@@ -166,28 +158,38 @@ fn native_compile(ruby: &Ruby, source: String, opts: RHash) -> Result<RArray, Er
         _ => {}
     }
 
-    let out = ruby.ary_new_capa(3);
-    if want_map {
-        let result = sasso::compile_with_source_map(&source, &copts)
-            .map_err(|e| compile_error(ruby, e.to_string()))?;
-        out.push(result.css)?;
-        out.push(result.source_map.to_json())?;
+    // One shape for both entry points: the map is None when it was not asked for.
+    let compiled = if want_map {
+        sasso::compile_with_source_map(&source, &copts)
+            .map(|result| (result.css, Some(result.source_map.to_json())))
     } else {
-        let css =
-            sasso::compile(&source, &copts).map_err(|e| compile_error(ruby, e.to_string()))?;
-        out.push(css)?;
-        out.push(ruby.qnil())?;
-    }
+        sasso::compile(&source, &copts).map(|css| (css, None))
+    };
 
-    // Only ever non-empty under "capture". A failed compile raises above and
-    // takes its warnings with it — the raised diagnostic is the whole story
-    // there, and `CompileError#message` already carries it in full.
+    let out = ruby.ary_new_capa(4);
+    let error = match compiled {
+        Ok((css, map_json)) => {
+            out.push(css)?;
+            out.push(map_json)?;
+            None
+        }
+        // Report the failure as a value; `lib/sasso.rb` raises it, AFTER the
+        // warnings below have been delivered.
+        Err(e) => {
+            out.push(ruby.qnil())?;
+            out.push(ruby.qnil())?;
+            Some(e.to_string())
+        }
+    };
+
+    // Only ever non-empty under "capture".
     let recorded = captured.take();
     let warnings = ruby.ary_new_capa(recorded.len());
     for warning in recorded {
         warnings.push(warning.into_hash(ruby)?)?;
     }
     out.push(warnings)?;
+    out.push(error)?;
 
     Ok(out)
 }

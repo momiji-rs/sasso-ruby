@@ -194,6 +194,19 @@ class CompileTest < Minitest::Test
            "expected a color-functions deprecation, got #{seen.map { |d| d[:deprecation_id] }.inspect}")
   end
 
+  # A compile can warn and THEN fail. Under on_warn: the callable is the only
+  # thing printing those warnings, so they have to survive the error — dart-sass
+  # hands them to its logger before it throws too. The error still raises.
+  def test_on_warn_receives_warnings_raised_before_a_compile_error
+    seen = []
+    err = assert_raises(Sasso::CompileError) do
+      Sasso.compile_string(%(@warn "before the error";\na{b: 1px + 1em}),
+                           url: "in.scss", on_warn: ->(d) { seen << d })
+    end
+    assert_match(/incompatible units/, err.message)
+    assert_equal ["before the error"], seen.map { |d| d[:message] }
+  end
+
   def test_quiet_and_on_warn_are_mutually_exclusive
     err = assert_raises(ArgumentError) do
       Sasso.compile_string("a{b:1}", quiet: true, on_warn: ->(_d) {})
