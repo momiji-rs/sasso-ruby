@@ -224,6 +224,28 @@ class CompileTest < Minitest::Test
     end
   end
 
+  # Non-ASCII output carries a prefix declaring UTF-8, and charset: false drops
+  # it (dart-sass `charset` / `--no-charset`). Expanded gets `@charset`, and
+  # compressed a BOM — verified byte-for-byte against dart-sass 1.104.1.
+  def test_charset_prefixes_non_ascii_output
+    scss = %(a{content:"café"})
+    assert_equal %(@charset "UTF-8";\na {\n  content: "café";\n}), Sasso.compile_string(scss)
+    assert_equal %(a {\n  content: "café";\n}), Sasso.compile_string(scss, charset: false)
+  end
+
+  def test_charset_is_a_bom_when_compressed
+    scss = %(a{content:"café"})
+    assert_equal %(﻿a{content:"café"}), Sasso.compile_string(scss, style: :compressed)
+    assert_equal %(a{content:"café"}),
+                 Sasso.compile_string(scss, style: :compressed, charset: false)
+  end
+
+  # Nothing to declare when the output is all ASCII, charset: or not.
+  def test_charset_is_absent_from_ascii_output
+    assert_equal "a {\n  b: 1;\n}", Sasso.compile_string("a{b:1}")
+    assert_equal "a {\n  b: 1;\n}", Sasso.compile_string("a{b:1}", charset: false)
+  end
+
   private
 
   def collect(source, dir, **opts)

@@ -128,7 +128,8 @@ fn native_compile(ruby: &Ruby, source: String, opts: RHash) -> Result<RArray, Er
             opts,
             "source_map_include_sources",
             false,
-        )?);
+        )?)
+        .with_charset(flag(ruby, opts, "charset", true)?);
 
     // `url` is load-bearing: it ENABLES the byte-exact dart diagnostic block.
     if let Some(ref u) = url {

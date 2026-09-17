@@ -51,6 +51,7 @@ module Sasso
   #   load_paths:  dirs searched for @use/@forward/@import (built-in importer)
   #   url:         filename shown in diagnostics; ENABLES the dart-exact error block
   #   alert_ascii: true => ASCII-only diagnostics (maps to the compiler's no-unicode)
+  #   charset:     false => omit the @charset/BOM prefix on non-ASCII output
   #   quiet:       true => print no @warn/@debug/deprecation diagnostics at all
   #   quiet_deps:  true => drop deprecation warnings raised inside dependencies
   #   on_warn:     a callable receiving each diagnostic as a Hash (see WARNING_KEYS);
@@ -61,7 +62,7 @@ module Sasso
   def compile_string(source, style: :expanded, syntax: :scss, indented: false,
                      load_paths: [], url: nil, alert_ascii: false,
                      source_map: false, source_map_include_sources: false,
-                     quiet: false, quiet_deps: false, on_warn: nil)
+                     charset: true, quiet: false, quiet_deps: false, on_warn: nil)
     syntax = :sass if indented
     validate!(style, STYLES, :style)
     validate!(syntax, SYNTAXES, :syntax)
@@ -75,6 +76,7 @@ module Sasso
                                                        unicode: !alert_ascii,
                                                        source_map: source_map,
                                                        source_map_include_sources: source_map_include_sources,
+                                                       charset: charset,
                                                        quiet_deps: quiet_deps,
                                                        warnings: warnings_mode(quiet, on_warn),
                                                      })
