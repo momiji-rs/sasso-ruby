@@ -31,6 +31,11 @@ rescue LoadError
 end
 
 module Sasso
+  # The bundled compiler crate's version, read from the linked binary rather
+  # than written down here, so it cannot drift from what is actually loaded.
+  # Distinct from VERSION, which is the gem's own (see lib/sasso/version.rb).
+  CORE_VERSION = Sasso::Native._core_version.freeze
+
   STYLES   = %i[expanded compressed].freeze
   SYNTAXES = %i[scss sass css].freeze
 

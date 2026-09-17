@@ -246,6 +246,16 @@ class CompileTest < Minitest::Test
     assert_equal "a {\n  b: 1;\n}", Sasso.compile_string("a{b:1}", charset: false)
   end
 
+  # CORE_VERSION comes from the linked crate, so it doubles as a guard that the
+  # binary loaded really is the version ext/sasso/Cargo.toml pins — the drift
+  # the core's own `VERSION` was added to make impossible.
+  def test_core_version_matches_the_pinned_crate
+    manifest = File.read(File.expand_path("../ext/sasso/Cargo.toml", __dir__))
+    pinned = manifest[/package = "sasso", version = "=([\d.]+)"/, 1]
+    refute_nil pinned, "could not find the core crate pin in ext/sasso/Cargo.toml"
+    assert_equal pinned, Sasso::CORE_VERSION
+  end
+
   private
 
   def collect(source, dir, **opts)

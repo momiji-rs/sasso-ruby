@@ -1,5 +1,6 @@
 module Sasso
   VERSION: String
+  CORE_VERSION: String
   STYLES: Array[Symbol]
   SYNTAXES: Array[Symbol]
   WARNING_KEYS: Array[Symbol]

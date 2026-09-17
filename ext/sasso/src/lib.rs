@@ -189,10 +189,18 @@ fn native_compile(ruby: &Ruby, source: String, opts: RHash) -> Result<RArray, Er
     Ok(out)
 }
 
+/// The bundled core compiler's version, read from the crate this extension is
+/// actually linked against. The core exposes `VERSION` (since 0.9.1) precisely
+/// so a binding cannot report a version that has drifted from its own pin.
+fn core_version() -> &'static str {
+    sasso::VERSION
+}
+
 #[magnus::init]
 fn init(ruby: &Ruby) -> Result<(), Error> {
     let module = ruby.define_module("Sasso")?;
     let native = module.define_module("Native")?;
     native.define_module_function("_compile", function!(native_compile, 2))?;
+    native.define_module_function("_core_version", function!(core_version, 0))?;
     Ok(())
 }
