@@ -52,6 +52,58 @@ Sasso.compile("app/assets/stylesheets/application.scss",
 | `load_paths:` | `[]` | directories searched for `@use`/`@forward`/`@import` |
 | `url:` | `nil` | filename shown in diagnostics (enables the rich dart-style error block) |
 | `alert_ascii:` | `false` | ASCII-only diagnostics |
+| `charset:` | `true` | prefix non-ASCII output with `@charset "UTF-8";` (a BOM when compressed) |
+| `source_map:` | `false` | return a `Sasso::CompileResult` instead of a String |
+| `source_map_include_sources:` | `false` | embed each source's text in the map's `sourcesContent` |
+| `quiet:` | `false` | print no `@warn`/`@debug`/deprecation diagnostics |
+| `quiet_deps:` | `false` | drop deprecation warnings raised inside dependencies |
+| `on_warn:` | `nil` | a callable receiving each diagnostic; replaces the stderr printing |
+
+### Source maps
+
+With `source_map: true` the return value is a `Sasso::CompileResult` — `#css` is
+the same String you would get otherwise, and `#source_map` is a parsed Source Map
+v3 Hash. Pass `url:` so the map can name the entry stylesheet.
+
+```ruby
+r = Sasso.compile_string(scss, source_map: true, url: "application.scss")
+r.css                     # => "a {\n  color: red;\n}"
+r.source_map["version"]   # => 3
+r.source_map["sources"]   # => ["application.scss"]
+```
+
+### Diagnostics
+
+`@warn`, `@debug` and deprecation warnings print to `$stderr` by default, the
+same dart-style block the `sasso` CLI and dart-sass print. Two ways to change
+that:
+
+```ruby
+# Silence them entirely:
+Sasso.compile_string(scss, quiet: true)
+
+# Silence only what dependencies deprecate (dart-sass `quietDeps`) — files
+# resolved through a load path. The entry stylesheet's own still print.
+Sasso.compile_string(scss, load_paths: ["vendor/stylesheets"], quiet_deps: true)
+
+# Or take delivery yourself, which suppresses the printing:
+Sasso.compile_string(scss, url: "in.scss", on_warn: ->(d) {
+  next if d[:deprecation_id] == "color-functions"
+
+  Rails.logger.warn(d[:formatted])   # the block the compiler would have printed
+})
+```
+
+Each diagnostic is a Hash of `Sasso::WARNING_KEYS`: `:kind` (`:warn`/`:debug`),
+`:deprecation`, `:deprecation_id`, `:message`, `:formatted`, `:url`, `:line` and
+`:path`. `:url` is dart's display form of the file; `:path` identifies it (the
+importer's canonical path), which is what distinguishes a dependency from the
+entry stylesheet. `quiet:` and `on_warn:` are mutually exclusive.
+
+### Versions
+
+`Sasso::VERSION` is the gem's. `Sasso::CORE_VERSION` is the bundled compiler
+crate's, read from the linked binary — the two float independently.
 
 ### Errors
 
