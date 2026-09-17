@@ -26,11 +26,13 @@ class CompileTest < Minitest::Test
     refute Sasso.compile_string("a{b:1px}", style: :compressed).end_with?("\n"), "compressed must not end with a newline"
   end
 
-  # Core sasso 0.6.2: compressed output emits the shortest equivalent legacy
-  # color form (matching dart-sass 1.101.0). A binding-level guard that the
-  # adopted core behavior is surfaced through the gem.
+  # Core sasso 0.9.0: a legacy color with any fractional channel serializes its
+  # rgb triple as percentages (dart-sass 1.101.4), and compressed hsl routes
+  # through rgb like every other legacy space. `darken(#336699,10%)` lands on
+  # fractional channels, so it takes the percent rgb form; an integer-equivalent
+  # hsl literal still collapses to hex. Both verified against dart-sass 1.104.1.
   def test_compressed_color_shortest_form
-    assert_equal "a{x:hsl(210,50%,30%)}",
+    assert_equal "a{x:rgb(15%,30%,45%)}",
                  Sasso.compile_string("a{x:darken(#336699,10%)}", style: :compressed)
     assert_equal "a{x:#369}",
                  Sasso.compile_string("a{x:hsl(210,50%,40%)}", style: :compressed)
