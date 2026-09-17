@@ -3,10 +3,103 @@
 All notable changes to the **sasso** Ruby gem are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-The gem version floats independently of the `sasso` compiler crate; each release
-notes the exact core crate version it pins.
+Since 0.14.0 the gem version tracks the `sasso` compiler crate it bundles; each
+release notes the exact core crate version it pins. Releases up to 0.2.7 versioned
+the gem independently of the crate.
 
 ## [Unreleased]
+
+## [0.14.0] - 2026-09-17
+
+_The gem version now tracks the core compiler's. It jumps 0.2.7 → 0.14.0 to meet
+`sasso` 0.14.0, adopting seven core releases at once (0.7.0 through 0.14.0)._
+
+_**Why align.** The gem version floated independently, so "sasso 0.2.7" said
+nothing about which compiler it carried: the three framework gems each had to
+document the mapping, and a bug report needed both numbers to be actionable.
+From here, a gem release adopting core X.Y.Z **is** gem X.Y.Z. A gem-only fix
+takes the next patch, so the gem may sit ahead of the crate within a minor —
+the new `Sasso::CORE_VERSION` always reports what is actually linked._
+
+_The Ruby API is backward compatible; the CSS the compiler emits is not, in the
+ways listed below._
+
+### Removed
+
+- **Global `whiteness()` / `blackness()` now error** (core 0.9.0, matching
+  dart-sass): they are `sass:color`-only — use `color.whiteness()` /
+  `color.blackness()`. This is the one change here that can stop an existing
+  stylesheet compiling.
+- **Ruby 3.1 support** (`required_ruby_version` is now `>= 3.2.0`). It left
+  security maintenance in March 2025, and is off the precompiled-gem matrix.
+
+### Changed (output — dart-sass 1.101.4 → 1.104.1 alignment)
+
+The gem's Ruby API is unchanged, but the CSS it emits moved with the core. If
+you byte-compare output — snapshot tests, asset digests, build caches — expect
+diffs. The CSS is equivalent; only its spelling changed.
+
+- A legacy color with any fractional channel writes its rgb triple as
+  **percentages**: `rgb(127.5, 0, 127.5)` becomes `rgb(50%, 0%, 50%)` (0.9.0).
+- **Compressed hsl/hwb route through rgb** like every other legacy space, so
+  `darken(#336699, 10%)` compresses to `rgb(15%,30%,45%)` rather than
+  `hsl(210,50%,30%)` (0.9.0).
+- **A negative zero keeps its sign**: `0 * -1`, `-0` and `math.div(0, -1)`
+  serialize as `-0`. The sign is the IEEE sign bit, so `0 - 0` stays `0` (0.10.0).
+- **Colors convert their degenerate channels**: a `NaN` channel becomes `0`, and
+  a polar hue converts every non-finite value (0.10.0).
+- **`rec2020` uses the pure 2.4 gamma transfer function**, replacing the BT.2020
+  piecewise curve (0.9.0).
+- **Plain-CSS `if()` emits in CSS serialization format**, not `meta.inspect`
+  format: lists lose their parens, `null` serializes to nothing (0.9.0).
+- **A comment before `@use` is emitted exactly once**; a repeat edge into an
+  already-loaded module no longer re-emits it (0.10.0).
+- Extensive **`@extend`, module-system and selector line-break fidelity** fixes
+  (0.7.0, 0.8.0) — the work that took all 20 projects in the core's real-world
+  corpus to byte-identical with dart-sass.
+
+### Changed (source maps)
+
+- **A declaration whose value is a bare `$name` maps back to the variable's
+  definition**, transitively through `$b: $a` chains, module members and
+  mixin/function parameters (0.9.0). The segment used to be omitted, which also
+  renumbered every following delta-encoded segment — so a recorded `mappings`
+  string changes.
+
+### Changed (diagnostics)
+
+- **Function arity errors follow dart's wording**: only positional arguments
+  count, and the word "positional" appears once any named argument is in play
+  (0.10.0).
+- **An error inside a loaded file is attributed to that file**, with one stack
+  frame per loader, for `@use`, `@forward` and `@import` chains alike (0.7.0).
+
+### Added
+
+- **`charset:`** (dart-sass `charset`) — `false` omits the `@charset "UTF-8";`
+  prefix, or the U+FEFF BOM when compressed, that non-ASCII output carries.
+- **`quiet:`** — print no `@warn`/`@debug`/deprecation diagnostics. They have
+  always gone to `$stderr`; there was previously no way off.
+- **`quiet_deps:`** (dart-sass `quietDeps`) — drop deprecation warnings raised
+  inside dependencies (files resolved through a load path), while the entry
+  stylesheet's own still print. `@warn` is untouched either way.
+- **`on_warn:`** — a callable receiving each diagnostic as a Hash of the new
+  `Sasso::WARNING_KEYS`, which replaces the stderr printing rather than
+  duplicating it. `:formatted` carries the full dart-style block, so the
+  compiler's own rendering can go straight into an application logger.
+  Mutually exclusive with `quiet:`.
+- **`Sasso::CORE_VERSION`** — the bundled compiler crate's version, read from
+  the linked binary so it cannot drift from what is loaded.
+
+### Documentation
+
+- The README documents **`source_map:` and `CompileResult` for the first time**;
+  they shipped in gem 0.2.0 and never reached it. `sig/sasso.rbs` gains them too,
+  alongside the new options.
+- The **Performance table is remeasured** (core 0.14.0 against `sass-embedded`
+  1.104.1; `benchmark/Gemfile.lock` had been pinning gem 0.1.1 and 1.101.0). The
+  ~180-rule case is ~10% faster; the cold-start row is corrected downward, from a
+  claimed 1.1 ms to a measured 3.2 ms, which makes it 12.7× rather than 35×.
 
 ## [0.2.7] - 2026-06-25
 

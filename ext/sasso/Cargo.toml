@@ -1,7 +1,7 @@
 # The Ruby native-extension wrapper: a cdylib around `sasso::compile`, shipped
 # inside the `sasso` gem (NOT published to crates.io). Depends on the PUBLISHED
-# core crate via an exact pin — bump it deliberately to adopt a new core release
-# (the gem version floats independently; see lib/sasso/version.rb).
+# core crate via an exact pin — bump it deliberately to adopt a new core release,
+# and move the gem version to match (see lib/sasso/version.rb).
 [package]
 # Must equal the rake-compiler ExtensionTask name (rb_sys looks the package up
 # by this name). The core compiler is depended on under a RENAMED key
