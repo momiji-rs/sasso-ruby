@@ -16,7 +16,9 @@ use magnus::{
     TryConvert,
 };
 use sasso_core as sasso; // the core crate, renamed in Cargo.toml to free the `sasso` package name
+use std::cell::RefCell;
 use std::path::PathBuf;
+use std::rc::Rc;
 
 /// `Sasso::CompileError` (defined in lib/sasso.rb, loaded before this ext) for
 /// a rescuable raise; falls back to `RuntimeError` if the lookup ever fails.
@@ -51,7 +53,56 @@ fn load_paths(ruby: &Ruby, opts: RHash) -> Result<Vec<PathBuf>, Error> {
     }
 }
 
-/// Flat native ABI: `_compile(source, opts) -> [css, source_map_json_or_nil]`.
+/// One `@warn` / `@debug` / deprecation diagnostic, copied out of the borrowed
+/// `WarnEvent` so it outlives the compile that produced it.
+///
+/// The handler runs DURING the compile, and calling back into Ruby from there
+/// would re-enter the VM mid-compile; instead every event is recorded here and
+/// handed to Ruby once `compile` has returned.
+struct Warning {
+    kind: &'static str,
+    deprecation: bool,
+    deprecation_id: String,
+    message: String,
+    formatted: String,
+    url: String,
+    line: usize,
+    path: String,
+}
+
+impl Warning {
+    fn record(event: &sasso::WarnEvent<'_>) -> Self {
+        Warning {
+            kind: match event.kind {
+                sasso::WarnKind::Debug => "debug",
+                sasso::WarnKind::Warn => "warn",
+            },
+            deprecation: event.deprecation,
+            deprecation_id: event.deprecation_id.to_owned(),
+            message: event.message.to_owned(),
+            formatted: event.formatted.to_owned(),
+            url: event.url.to_owned(),
+            line: event.line,
+            path: event.path.to_owned(),
+        }
+    }
+
+    fn into_hash(self, ruby: &Ruby) -> Result<RHash, Error> {
+        let h = ruby.hash_new();
+        h.aset(ruby.sym_new("kind"), ruby.sym_new(self.kind))?;
+        h.aset(ruby.sym_new("deprecation"), self.deprecation)?;
+        h.aset(ruby.sym_new("deprecation_id"), self.deprecation_id)?;
+        h.aset(ruby.sym_new("message"), self.message)?;
+        h.aset(ruby.sym_new("formatted"), self.formatted)?;
+        h.aset(ruby.sym_new("url"), self.url)?;
+        h.aset(ruby.sym_new("line"), self.line)?;
+        h.aset(ruby.sym_new("path"), self.path)?;
+        Ok(h)
+    }
+}
+
+/// Flat native ABI:
+/// `_compile(source, opts) -> [css, source_map_json_or_nil, warnings]`.
 /// Never panics across FFI — every failure is a raised Ruby exception.
 fn native_compile(ruby: &Ruby, source: String, opts: RHash) -> Result<RArray, Error> {
     let style = opt::<String>(ruby, opts, "style")?.unwrap_or_default();
@@ -90,7 +141,29 @@ fn native_compile(ruby: &Ruby, source: String, opts: RHash) -> Result<RArray, Er
         copts = copts.with_importer(&importer);
     }
 
-    let out = ruby.ary_new_capa(2);
+    // dart-sass `quietDeps`: classified by how a file was RESOLVED, so the set
+    // has to come from the importer that resolved it. Harmless with no load
+    // paths — nothing can be a dependency, so the set stays empty.
+    if flag(ruby, opts, "quiet_deps", false)? {
+        copts = copts.with_quiet_deps(importer.dependencies());
+    }
+
+    // "stderr" leaves `Options::warn` unset, which is what makes the core print
+    // its own dart-style block — the default path installs no handler and pays
+    // nothing. Only "capture" allocates.
+    let captured: Rc<RefCell<Vec<Warning>>> = Rc::new(RefCell::new(Vec::new()));
+    match opt::<String>(ruby, opts, "warnings")?.unwrap_or_default().as_str() {
+        "silence" => copts = copts.with_warn_handler(Rc::new(|_| {})),
+        "capture" => {
+            let sink = Rc::clone(&captured);
+            copts = copts.with_warn_handler(Rc::new(move |event: &sasso::WarnEvent<'_>| {
+                sink.borrow_mut().push(Warning::record(event));
+            }));
+        }
+        _ => {}
+    }
+
+    let out = ruby.ary_new_capa(3);
     if want_map {
         let result = sasso::compile_with_source_map(&source, &copts)
             .map_err(|e| compile_error(ruby, e.to_string()))?;
@@ -101,6 +174,17 @@ fn native_compile(ruby: &Ruby, source: String, opts: RHash) -> Result<RArray, Er
         out.push(css)?;
         out.push(ruby.qnil())?;
     }
+
+    // Only ever non-empty under "capture". A failed compile raises above and
+    // takes its warnings with it — the raised diagnostic is the whole story
+    // there, and `CompileError#message` already carries it in full.
+    let recorded = captured.take();
+    let warnings = ruby.ary_new_capa(recorded.len());
+    for warning in recorded {
+        warnings.push(warning.into_hash(ruby)?)?;
+    }
+    out.push(warnings)?;
+
     Ok(out)
 }
 

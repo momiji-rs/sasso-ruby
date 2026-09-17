@@ -34,6 +34,13 @@ module Sasso
   STYLES   = %i[expanded compressed].freeze
   SYNTAXES = %i[scss sass css].freeze
 
+  # The keys of a diagnostic Hash handed to `on_warn:`. `:kind` is :warn or
+  # :debug; `:formatted` is the full dart-style block (header, snippet, stack
+  # trace) the compiler would otherwise have printed to stderr; `:url` is dart's
+  # display form of the source file and `:path` identifies it (the importer's
+  # canonical path), which is what tells a dependency from the entry stylesheet.
+  WARNING_KEYS = %i[kind deprecation deprecation_id message formatted url line path].freeze
+
   module_function
 
   # Compile a SCSS/Sass source String to a CSS String.
@@ -44,25 +51,34 @@ module Sasso
   #   load_paths:  dirs searched for @use/@forward/@import (built-in importer)
   #   url:         filename shown in diagnostics; ENABLES the dart-exact error block
   #   alert_ascii: true => ASCII-only diagnostics (maps to the compiler's no-unicode)
+  #   quiet:       true => print no @warn/@debug/deprecation diagnostics at all
+  #   quiet_deps:  true => drop deprecation warnings raised inside dependencies
+  #   on_warn:     a callable receiving each diagnostic as a Hash (see WARNING_KEYS);
+  #                taking delivery this way replaces the default stderr printing
   #
+  # Diagnostics go to $stderr by default, as the `sasso` CLI and dart-sass do.
   # Raises Sasso::CompileError on a compile failure; ArgumentError on bad options.
   def compile_string(source, style: :expanded, syntax: :scss, indented: false,
                      load_paths: [], url: nil, alert_ascii: false,
-                     source_map: false, source_map_include_sources: false)
+                     source_map: false, source_map_include_sources: false,
+                     quiet: false, quiet_deps: false, on_warn: nil)
     syntax = :sass if indented
     validate!(style, STYLES, :style)
     validate!(syntax, SYNTAXES, :syntax)
     # A positional Hash, not keyword arguments: `_compile` is a C function and
     # has no keyword parameters, so the braces say what actually crosses the ABI.
-    css, map_json = Sasso::Native._compile(String(source), {
-                                             style: style.to_s,
-                                             syntax: syntax.to_s,
-                                             load_paths: Array(load_paths).map(&:to_s),
-                                             url: url && url.to_s,
-                                             unicode: !alert_ascii,
-                                             source_map: source_map,
-                                             source_map_include_sources: source_map_include_sources,
-                                           })
+    css, map_json, diagnostics = Sasso::Native._compile(String(source), {
+                                                       style: style.to_s,
+                                                       syntax: syntax.to_s,
+                                                       load_paths: Array(load_paths).map(&:to_s),
+                                                       url: url && url.to_s,
+                                                       unicode: !alert_ascii,
+                                                       source_map: source_map,
+                                                       source_map_include_sources: source_map_include_sources,
+                                                       quiet_deps: quiet_deps,
+                                                       warnings: warnings_mode(quiet, on_warn),
+                                                     })
+    diagnostics.each { |d| on_warn.call(d) } if on_warn
     return css unless source_map
 
     CompileResult.new(css, JSON.parse(map_json))
@@ -94,4 +110,22 @@ module Sasso
           "invalid #{name}: #{value.inspect} (expected one of #{allowed.inspect})"
   end
   private_class_method :validate!
+
+  # Which diagnostic mode the native side installs. "stderr" leaves the
+  # compiler's own handler in place — the default costs nothing, and the block
+  # prints as it is raised rather than after the compile. The other two modes
+  # install a handler, which is what suppresses that printing.
+  def warnings_mode(quiet, on_warn)
+    if on_warn
+      raise ArgumentError, "quiet: and on_warn: are mutually exclusive" if quiet
+      raise ArgumentError, "on_warn: must respond to #call" unless on_warn.respond_to?(:call)
+
+      "capture"
+    elsif quiet
+      "silence"
+    else
+      "stderr"
+    end
+  end
+  private_class_method :warnings_mode
 end

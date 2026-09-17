@@ -149,4 +149,87 @@ class CompileTest < Minitest::Test
       assert_equal 3, r.source_map["version"]
     end
   end
+
+  # `@warn` reaches stderr by default, as the sasso CLI and dart-sass do.
+  def test_warnings_print_to_stderr_by_default
+    _out, err = capture_subprocess_io do
+      Sasso.compile_string(%(@warn "careful";\na{b:1}), url: "in.scss")
+    end
+    assert_includes err, "careful"
+  end
+
+  def test_quiet_silences_warnings
+    _out, err = capture_subprocess_io do
+      css = Sasso.compile_string(%(@warn "careful";\na{b:1}), url: "in.scss", quiet: true)
+      assert_equal "a {\n  b: 1;\n}", css
+    end
+    assert_empty err
+  end
+
+  # Taking delivery through on_warn: replaces the stderr printing rather than
+  # duplicating it, and each diagnostic arrives as a Hash of WARNING_KEYS.
+  def test_on_warn_receives_each_diagnostic_and_suppresses_stderr
+    seen = []
+    _out, err = capture_subprocess_io do
+      Sasso.compile_string(%(@warn "careful";\n@debug "looking";\na{b:1}),
+                           url: "in.scss", on_warn: ->(d) { seen << d })
+    end
+    assert_empty err
+    assert_equal %i[warn debug], seen.map { |d| d[:kind] }
+    assert_equal ["careful", "looking"], seen.map { |d| d[:message] }
+    seen.each do |d|
+      assert_equal Sasso::WARNING_KEYS.sort, d.keys.sort
+      assert_equal "in.scss", d[:url]
+      assert_includes d[:formatted], "in.scss"
+    end
+    refute seen.first[:deprecation]
+    assert_equal 1, seen.first[:line]
+  end
+
+  # A deprecation carries its id, which is how a caller filters one out.
+  def test_on_warn_reports_deprecations_with_an_id
+    seen = []
+    Sasso.compile_string("a{x:darken(#336699,10%)}", url: "in.scss", on_warn: ->(d) { seen << d })
+    assert(seen.any? { |d| d[:deprecation] && d[:deprecation_id] == "color-functions" },
+           "expected a color-functions deprecation, got #{seen.map { |d| d[:deprecation_id] }.inspect}")
+  end
+
+  def test_quiet_and_on_warn_are_mutually_exclusive
+    err = assert_raises(ArgumentError) do
+      Sasso.compile_string("a{b:1}", quiet: true, on_warn: ->(_d) {})
+    end
+    assert_match(/mutually exclusive/, err.message)
+  end
+
+  def test_on_warn_must_be_callable
+    assert_raises(ArgumentError) { Sasso.compile_string("a{b:1}", on_warn: :not_callable) }
+  end
+
+  # quiet_deps: drops a dependency's deprecation warnings (dart-sass quietDeps)
+  # while the entry stylesheet's own still come through, and @warn is untouched
+  # either way — dart classifies by how a file was RESOLVED, so the partial has
+  # to be reached through a load path to count.
+  def test_quiet_deps_silences_only_a_dependency_deprecation
+    require "tmpdir"
+    Dir.mktmpdir do |dir|
+      File.write(File.join(dir, "_dep.scss"), %(@warn "from dep";\n.d{x:darken(#336699,10%)}\n))
+      entry = %(@use "dep";\n.e{y:darken(#336699,10%)}\n)
+
+      loud = collect(entry, dir)
+      assert_equal 2, loud.count { |d| d[:deprecation_id] == "color-functions" }
+
+      quiet = collect(entry, dir, quiet_deps: true)
+      assert_equal 1, quiet.count { |d| d[:deprecation_id] == "color-functions" }
+      assert_includes quiet.map { |d| d[:message] }, "from dep"
+    end
+  end
+
+  private
+
+  def collect(source, dir, **opts)
+    seen = []
+    Sasso.compile_string(source, url: "in.scss", load_paths: [dir],
+                                 on_warn: ->(d) { seen << d }, **opts)
+    seen
+  end
 end
