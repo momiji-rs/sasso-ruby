@@ -48,7 +48,11 @@ fn load_paths(ruby: &Ruby, opts: RHash) -> Result<Vec<PathBuf>, Error> {
 ///
 /// The handler runs DURING the compile, and calling back into Ruby from there
 /// would re-enter the VM mid-compile; instead every event is recorded here and
-/// handed to Ruby once `compile` has returned.
+/// handed to Ruby once `compile` has returned. That trades memory for safety: a
+/// compile raising N warnings holds N of these until it finishes, where the
+/// default stderr path streams them out and retains nothing. The core caps
+/// repeated deprecations at five per id, so in practice only `@warn`/`@debug` in
+/// a loop can grow the buffer without bound.
 struct Warning {
     kind: &'static str,
     deprecation: bool,
@@ -128,8 +132,9 @@ fn native_compile(ruby: &Ruby, source: String, opts: RHash) -> Result<RArray, Er
     }
 
     // Bind the importer for the whole `compile` call (Options borrows it).
-    let importer = sasso::FsImporter::new(paths.clone());
-    if !paths.is_empty() {
+    let has_paths = !paths.is_empty();
+    let importer = sasso::FsImporter::new(paths);
+    if has_paths {
         copts = copts.with_importer(&importer);
     }
 
