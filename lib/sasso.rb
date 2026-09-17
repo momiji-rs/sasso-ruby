@@ -89,8 +89,15 @@ module Sasso
     # warnings are the caller's only copy once `on_warn:` has taken over from
     # the compiler's own printing. The native side hands the failure back as a
     # String for exactly this reason.
-    diagnostics.each { |d| on_warn.call(d) } if on_warn
-    raise CompileError, error if error
+    # The `ensure` is what makes the compile failure win when the callable
+    # itself raises: a logger that is down should not mask the Sass error, which
+    # is the actual news. Ruby records the callable's exception as the
+    # CompileError's #cause, so neither is lost.
+    begin
+      diagnostics.each { |d| on_warn.call(d) } if on_warn
+    ensure
+      raise CompileError, error if error
+    end
     return css unless source_map
 
     CompileResult.new(css, JSON.parse(map_json))

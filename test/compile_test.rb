@@ -207,6 +207,39 @@ class CompileTest < Minitest::Test
     assert_equal ["before the error"], seen.map { |d| d[:message] }
   end
 
+  # A callable that blows up must not take the Sass error with it: the compile
+  # failure is the actual news, and a logger being down is incidental to it.
+  def test_a_raising_on_warn_does_not_mask_the_compile_error
+    err = assert_raises(Sasso::CompileError) do
+      Sasso.compile_string(%(@warn "w";\na{b: 1px + 1em}),
+                           url: "in.scss", on_warn: ->(_d) { raise "logger down" })
+    end
+    assert_match(/incompatible units/, err.message)
+    assert_equal "logger down", err.cause.message
+  end
+
+  # With no compile error to preserve, the callable's exception is the only one.
+  def test_a_raising_on_warn_propagates_on_a_successful_compile
+    err = assert_raises(RuntimeError) do
+      Sasso.compile_string(%(@warn "w";\na{b:1}), url: "in.scss",
+                                                  on_warn: ->(_d) { raise "logger down" })
+    end
+    assert_equal "logger down", err.message
+  end
+
+  # The compiler caps a repeated deprecation at five per id and then reports the
+  # remainder as one span-less summary diagnostic, as dart-sass does. Documented
+  # because it is the one diagnostic with no :deprecation_id, :url or :line.
+  def test_repeated_deprecations_are_capped_and_summarized
+    src = (1..12).map { |i| ".c#{i}{x:darken(#336699,10%)}" }.join("\n")
+    seen = []
+    Sasso.compile_string(src, url: "in.scss", on_warn: ->(d) { seen << d })
+    assert_equal 5, seen.count { |d| d[:deprecation_id] == "color-functions" }
+    summary = seen.last
+    assert_match(/repetitive deprecation warnings omitted/, summary[:message])
+    assert_equal ["", "", 0], [summary[:deprecation_id], summary[:url], summary[:line]]
+  end
+
   def test_quiet_and_on_warn_are_mutually_exclusive
     err = assert_raises(ArgumentError) do
       Sasso.compile_string("a{b:1}", quiet: true, on_warn: ->(_d) {})
