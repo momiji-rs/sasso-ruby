@@ -48,7 +48,11 @@ fn flag(ruby: &Ruby, opts: RHash, key: &str, default: bool) -> Result<bool, Erro
 /// Read `load_paths` as filesystem paths.
 fn load_paths(ruby: &Ruby, opts: RHash) -> Result<Vec<PathBuf>, Error> {
     match opt::<RArray>(ruby, opts, "load_paths")? {
-        Some(a) => Ok(a.to_vec::<String>()?.into_iter().map(PathBuf::from).collect()),
+        Some(a) => Ok(a
+            .to_vec::<String>()?
+            .into_iter()
+            .map(PathBuf::from)
+            .collect()),
         None => Ok(Vec::new()),
     }
 }
@@ -123,12 +127,7 @@ fn native_compile(ruby: &Ruby, source: String, opts: RHash) -> Result<RArray, Er
             _ => sasso::Syntax::Scss,
         })
         .with_unicode(flag(ruby, opts, "unicode", true)?)
-        .with_source_map_include_sources(flag(
-            ruby,
-            opts,
-            "source_map_include_sources",
-            false,
-        )?)
+        .with_source_map_include_sources(flag(ruby, opts, "source_map_include_sources", false)?)
         .with_charset(flag(ruby, opts, "charset", true)?);
 
     // `url` is load-bearing: it ENABLES the byte-exact dart diagnostic block.
@@ -153,7 +152,10 @@ fn native_compile(ruby: &Ruby, source: String, opts: RHash) -> Result<RArray, Er
     // its own dart-style block — the default path installs no handler and pays
     // nothing. Only "capture" allocates.
     let captured: Rc<RefCell<Vec<Warning>>> = Rc::new(RefCell::new(Vec::new()));
-    match opt::<String>(ruby, opts, "warnings")?.unwrap_or_default().as_str() {
+    match opt::<String>(ruby, opts, "warnings")?
+        .unwrap_or_default()
+        .as_str()
+    {
         "silence" => copts = copts.with_warn_handler(Rc::new(|_| {})),
         "capture" => {
             let sink = Rc::clone(&captured);
@@ -171,7 +173,8 @@ fn native_compile(ruby: &Ruby, source: String, opts: RHash) -> Result<RArray, Er
         out.push(result.css)?;
         out.push(result.source_map.to_json())?;
     } else {
-        let css = sasso::compile(&source, &copts).map_err(|e| compile_error(ruby, e.to_string()))?;
+        let css =
+            sasso::compile(&source, &copts).map_err(|e| compile_error(ruby, e.to_string()))?;
         out.push(css)?;
         out.push(ruby.qnil())?;
     }
