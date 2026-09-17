@@ -101,10 +101,13 @@ diffs. The CSS is equivalent; only its spelling changed.
 - The README documents **`source_map:` and `CompileResult` for the first time**;
   they shipped in gem 0.2.0 and never reached it. `sig/sasso.rbs` gains them too,
   alongside the new options.
-- The **Performance table is remeasured** (core 0.14.0 against `sass-embedded`
-  1.104.1; `benchmark/Gemfile.lock` had been pinning gem 0.1.1 and 1.101.0). The
-  ~180-rule case is ~10% faster; the cold-start row is corrected downward, from a
-  claimed 1.1 ms to a measured 3.2 ms, which makes it 12.7× rather than 35×.
+- The **Performance table is remeasured**: this working tree (core 0.14.0)
+  against `sass-embedded` 1.104.1 and `sassc` 2.4.0. The ~180-rule case is ~10%
+  faster. The cold-start row is **corrected upward**, from a claimed 1.1 ms to a
+  measured 3.2 ms — that figure reproduced on neither the old gem nor the new, so
+  it predates this release; the margin over `sass-embedded` is 12.7×, not 35×.
+- `benchmark/Gemfile` takes **`SASSO_PATH`** to benchmark a working tree instead
+  of the published gem, which is what the README's table now reports.
 
 ## [0.2.7] - 2026-06-25
 
