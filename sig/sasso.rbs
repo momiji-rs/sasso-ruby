@@ -22,9 +22,14 @@ module Sasso
   class CompileError < Error
   end
 
-  class CompileResult
+  # `Struct.new(:css, :source_map)`. The constructor is spelled out because an
+  # RBS class without one inherits `Object`'s zero-argument `new`, which would
+  # reject the two-argument call the implementation makes.
+  class CompileResult < Struct[untyped]
     attr_reader css: String
     attr_reader source_map: Hash[String, untyped]
+
+    def initialize: (String css, Hash[String, untyped] source_map) -> void
   end
 
   def self.compile_string: (String source, ?style: Symbol, ?syntax: Symbol,
