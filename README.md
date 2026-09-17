@@ -6,7 +6,7 @@ In-process **SCSS / Sass → CSS** compilation for Ruby, backed by [**sasso**](h
 
 > This gem is the Ruby binding. The compiler core lives in the separate
 > [`momiji-rs/sasso`](https://github.com/momiji-rs/sasso) repo (crate on
-> crates.io); this gem pins it exactly and releases on its own cadence.
+> crates.io); this gem pins it exactly and carries its version number.
 
 ## Install
 
@@ -102,8 +102,15 @@ entry stylesheet. `quiet:` and `on_warn:` are mutually exclusive.
 
 ### Versions
 
-`Sasso::VERSION` is the gem's. `Sasso::CORE_VERSION` is the bundled compiler
-crate's, read from the linked binary — the two float independently.
+Since 0.14.0 the gem version tracks the core compiler crate it bundles: gem
+0.14.0 pins crate 0.14.0. A gem-only fix takes the next patch, so `Sasso::VERSION`
+may sit ahead of the crate within a minor — `Sasso::CORE_VERSION` reads the
+version out of the linked binary and is the authority on what is loaded.
+
+```ruby
+Sasso::VERSION       # => "0.14.0"  the gem
+Sasso::CORE_VERSION  # => "0.14.0"  the compiler actually linked in
+```
 
 ### Errors
 
