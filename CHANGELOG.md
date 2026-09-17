@@ -26,10 +26,6 @@ ways listed below._
 
 ### Removed
 
-- **Global `whiteness()` / `blackness()` now error** (core 0.9.0, matching
-  dart-sass): they are `sass:color`-only — use `color.whiteness()` /
-  `color.blackness()`. This is the one change here that can stop an existing
-  stylesheet compiling.
 - **Ruby 3.1 support** (`required_ruby_version` is now `>= 3.2.0`). It left
   security maintenance in March 2025, and is off the precompiled-gem matrix.
 
@@ -39,6 +35,13 @@ The gem's Ruby API is unchanged, but the CSS it emits moved with the core. If
 you byte-compare output — snapshot tests, asset digests, build caches — expect
 diffs. The CSS is equivalent; only its spelling changed.
 
+- **Global `whiteness()` / `blackness()` are no longer built-ins** (core 0.9.0):
+  they are `sass:color`-only, so the bare call is now an unknown function and
+  passes through as plain CSS instead of being evaluated. `whiteness(#f00)` goes
+  from `0%` to `whiteness(#f00)`, and `1 + whiteness(#f00)` to `1whiteness(#f00)`
+  — both byte-identical to dart-sass 1.104.1, and both **silent**: no error, no
+  warning. This is the change in this release to grep your stylesheets for. Use
+  `color.whiteness()` / `color.blackness()` via `@use "sass:color"`.
 - A legacy color with any fractional channel writes its rgb triple as
   **percentages**: `rgb(127.5, 0, 127.5)` becomes `rgb(50%, 0%, 50%)` (0.9.0).
 - **Compressed hsl/hwb route through rgb** like every other legacy space, so
