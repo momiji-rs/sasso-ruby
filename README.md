@@ -94,15 +94,24 @@ Sasso.compile_string(scss, url: "in.scss", on_warn: ->(d) {
 })
 ```
 
-A compile that warns and then fails delivers its warnings to `on_warn:` first and
-raises `Sasso::CompileError` after, so the callable — the only thing printing them
-at that point — never loses one.
-
 Each diagnostic is a Hash of `Sasso::WARNING_KEYS`: `:kind` (`:warn`/`:debug`),
 `:deprecation`, `:deprecation_id`, `:message`, `:formatted`, `:url`, `:line` and
 `:path`. `:url` is dart's display form of the file; `:path` identifies it (the
 importer's canonical path), which is what distinguishes a dependency from the
 entry stylesheet. `quiet:` and `on_warn:` are mutually exclusive.
+
+Two things to know about what `on_warn:` receives:
+
+- A compile that warns and then **fails** delivers its warnings first and raises
+  `Sasso::CompileError` after, so a diagnostic is never lost to the error — the
+  callable is the only thing reporting them once it has taken over. If the
+  callable itself raises, the `CompileError` still wins and carries that
+  exception as its `#cause`.
+- Like dart-sass, the compiler **caps a repeated deprecation at five per id** and
+  then emits one summary diagnostic — `"N repetitive deprecation warnings
+  omitted."` — with no `:deprecation_id`, no `:url` and `:line` of `0`. Code that
+  keys on the id or formats `"#{d[:url]}:#{d[:line]}"` should expect it. There is
+  no verbose mode that lifts the cap; the compiler core does not offer one.
 
 ### Versions
 
