@@ -21,7 +21,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 # Build-time only — NOT runtime gem deps, preserving sasso's zero-runtime-dep promise.
-magnus = "0.7"
+magnus = "0.8"
 # Direct dep (magnus pulls it transitively too) so its `links = "rb"` exposes
 # the `DEP_RB_*` env to OUR build.rs — `rb_sys_env::activate()` needs it, and
 # cargo only forwards a linked dep's metadata to its DIRECT dependents.
