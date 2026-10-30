@@ -19,9 +19,21 @@ gem "sasso"
 $ bundle install
 ```
 
-Precompiled native gems ship for common platforms (Linux gnu/musl, macOS, and
-Windows on x86_64/arm64), so no Rust toolchain is needed. On other platforms the
-gem compiles from source via `cargo` (needs a Rust toolchain).
+**Ruby 3.2, 3.3, 3.4 and 4.0** are supported, and CI tests each of them on
+Linux and macOS. Ruby 4.0 needs sasso 0.14.1 or later.
+
+Precompiled native gems for all four Ruby versions ship for these platforms, so
+they need no Rust toolchain:
+
+| OS | platforms |
+|---|---|
+| Linux (glibc) | `x86_64-linux`, `aarch64-linux` |
+| Linux (musl) | `x86_64-linux-musl`, `aarch64-linux-musl` |
+| macOS | `x86_64-darwin`, `arm64-darwin` |
+| Windows | `x64-mingw-ucrt` |
+
+On any other platform the gem compiles from source with `cargo`, which needs a
+Rust toolchain.
 
 ## Usage
 
