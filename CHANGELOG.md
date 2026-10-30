@@ -9,6 +9,8 @@ the gem independently of the crate.
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-10-30
+
 _Adopts core `sasso` 0.21.0, nine core releases at once (0.15.0 through 0.21.0)._
 
 _The Ruby API is backward compatible and gains one option. The compiler is not:

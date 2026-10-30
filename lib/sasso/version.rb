@@ -6,5 +6,5 @@ module Sasso
   # (ext/sasso/Cargo.toml). A gem-only fix takes the next patch, so the gem may
   # sit ahead of the crate within a minor — `Sasso::CORE_VERSION` reads the
   # version out of the linked binary and is the authority on what is loaded.
-  VERSION = "0.14.1"
+  VERSION = "0.21.0"
 end
