@@ -59,6 +59,8 @@ module Sasso
   #   charset:     false => omit the @charset/BOM prefix on non-ASCII output
   #   quiet:       true => print no @warn/@debug/deprecation diagnostics at all
   #   quiet_deps:  true => drop deprecation warnings raised inside dependencies
+  #   silence_deprecations: deprecation ids (Strings or Symbols) whose warnings
+  #                are dropped, e.g. [:import, "global-builtin"]
   #   on_warn:     a callable receiving each diagnostic as a Hash (see WARNING_KEYS);
   #                taking delivery this way replaces the default stderr printing
   #
@@ -67,7 +69,8 @@ module Sasso
   def compile_string(source, style: :expanded, syntax: :scss, indented: false,
                      load_paths: [], url: nil, alert_ascii: false,
                      source_map: false, source_map_include_sources: false,
-                     charset: true, quiet: false, quiet_deps: false, on_warn: nil)
+                     charset: true, quiet: false, quiet_deps: false,
+                     silence_deprecations: [], on_warn: nil)
     syntax = :sass if indented
     validate!(style, STYLES, :style)
     validate!(syntax, SYNTAXES, :syntax)
@@ -83,6 +86,7 @@ module Sasso
                                                        source_map_include_sources: source_map_include_sources,
                                                        charset: charset,
                                                        quiet_deps: quiet_deps,
+                                                       silence_deprecations: Array(silence_deprecations).map(&:to_s),
                                                        warnings: warnings_mode(quiet, on_warn),
                                                      })
     # Deliver first, raise second: a compile can warn and then fail, and those

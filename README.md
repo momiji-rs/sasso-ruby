@@ -69,6 +69,7 @@ Sasso.compile("app/assets/stylesheets/application.scss",
 | `source_map_include_sources:` | `false` | embed each source's text in the map's `sourcesContent` |
 | `quiet:` | `false` | print no `@warn`/`@debug`/deprecation diagnostics |
 | `quiet_deps:` | `false` | drop deprecation warnings raised inside dependencies |
+| `silence_deprecations:` | `[]` | deprecation ids (Strings or Symbols) whose warnings are dropped |
 | `on_warn:` | `nil` | a callable receiving each diagnostic; replaces the stderr printing |
 
 ### Source maps
@@ -87,8 +88,7 @@ r.source_map["sources"]   # => ["application.scss"]
 ### Diagnostics
 
 `@warn`, `@debug` and deprecation warnings print to `$stderr` by default, the
-same dart-style block the `sasso` CLI and dart-sass print. Two ways to change
-that:
+same dart-style block the `sasso` CLI and dart-sass print. To change that:
 
 ```ruby
 # Silence them entirely:
@@ -98,10 +98,12 @@ Sasso.compile_string(scss, quiet: true)
 # resolved through a load path. The entry stylesheet's own still print.
 Sasso.compile_string(scss, load_paths: ["vendor/stylesheets"], quiet_deps: true)
 
+# Silence particular deprecations by id (dart-sass `silenceDeprecations`),
+# wherever they are raised. Every other diagnostic still prints.
+Sasso.compile_string(scss, silence_deprecations: [:import, "color-functions"])
+
 # Or take delivery yourself, which suppresses the printing:
 Sasso.compile_string(scss, url: "in.scss", on_warn: ->(d) {
-  next if d[:deprecation_id] == "color-functions"
-
   Rails.logger.warn(d[:formatted])   # the block the compiler would have printed
 })
 ```

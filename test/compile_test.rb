@@ -270,6 +270,22 @@ class CompileTest < Minitest::Test
     end
   end
 
+  # silence_deprecations: drops the named deprecations wherever they are raised,
+  # and leaves every other diagnostic alone (dart-sass silenceDeprecations).
+  # Symbols and Strings both name an id, and an id the compiler never emits is
+  # accepted, as dart accepts it.
+  def test_silence_deprecations_drops_only_the_named_ids
+    scss = %(@warn "kept";\n.e{y:darken(#336699,10%)}\n)
+    loud = collect(scss)
+    assert_includes loud.map { |d| d[:deprecation_id] }, "color-functions"
+
+    [[:"color-functions"], ["color-functions", "no-such-id"]].each do |ids|
+      quiet = collect(scss, silence_deprecations: ids)
+      refute_includes quiet.map { |d| d[:deprecation_id] }, "color-functions"
+      assert_includes quiet.map { |d| d[:message] }, "kept"
+    end
+  end
+
   # Non-ASCII output carries a prefix declaring UTF-8, and charset: false drops
   # it (dart-sass `charset` / `--no-charset`). Expanded gets `@charset`, and
   # compressed a BOM — verified byte-for-byte against dart-sass 1.104.1.
@@ -304,9 +320,9 @@ class CompileTest < Minitest::Test
 
   private
 
-  def collect(source, dir, **opts)
+  def collect(source, dir = nil, **opts)
     seen = []
-    Sasso.compile_string(source, url: "in.scss", load_paths: [dir],
+    Sasso.compile_string(source, url: "in.scss", load_paths: Array(dir),
                                  on_warn: ->(d) { seen << d }, **opts)
     seen
   end

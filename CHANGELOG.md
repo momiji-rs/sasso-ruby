@@ -9,6 +9,108 @@ the gem independently of the crate.
 
 ## [Unreleased]
 
+_Adopts core `sasso` 0.21.0, nine core releases at once (0.15.0 through 0.21.0)._
+
+_The Ruby API is backward compatible and gains one option. The compiler is not:
+some stylesheets that compiled before now fail, and some CSS changes meaning,
+not only bytes. Read **New errors** first, then the output changes marked
+**meaning**._
+
+### Added
+
+- **`silence_deprecations:`** (dart-sass `silenceDeprecations`): deprecation ids,
+  as Strings or Symbols, whose warnings are dropped wherever they are raised.
+  Every other diagnostic still comes through. The core drops a silenced id before
+  its repetition cap, so unlike filtering inside `on_warn:` it leaves no
+  "N repetitive deprecation warnings omitted" footer. Ids the compiler never
+  emits are accepted, as dart accepts them (core 0.17.0).
+
+### Changed (new errors — stylesheets that compiled before)
+
+- **A built-in rejects an argument name it does not declare** (core 0.19.1).
+  `math.max(1, 2, $x: 999)` was `999`; it is now `Error: No parameter named $x.`
+  The color constructors are not checked yet.
+- **An argument given both by position and by name is an error** (0.19.2).
+  `color.mix(red, blue, 10%, $color1: green)` was `rgb(10%, 0%, 90%)`; it is now
+  `Argument $color1 was passed both by position and by name.`
+- **`@use "sass:color" as *` no longer exposes the members dart removed from
+  `sass:color`**, so `saturate(#abcdef, 10%)` reached that way fails (0.19.0).
+- **The color functions reject `var()`, `env()` and a calc that cannot fold**,
+  for example `color.invert(var(--c))` (0.19.0).
+- **Plain CSS rejects every `#{…}`**, where some positions used to drop it
+  silently, and a style rule inside a keyframe frame of a `.css` file is an
+  error (0.19.0).
+- **Selectors follow dart's grammar** (0.19.3). Malformed attributes (`[a=1]`,
+  `[a==b]`, `[]`), characters that start no selector (`a^b`), invalid keyframe
+  stops (`10px`) and a raw line break inside a quoted string now fail.
+
+### Changed (output)
+
+As with 0.14.0, byte-compared output (snapshot tests, asset digests, build
+caches) will differ. Entries marked **meaning** change what a browser does.
+
+- **meaning:** **compressed `color()` is valid CSS again** (0.17.0).
+  `color(display-p3 0.5 0.2 0.9)` compressed to `color(display-p3.5.2.9)`,
+  which browsers drop; it is now `color(display-p3 .5 .2 .9)`.
+- **meaning:** **a non-ASCII space is no longer whitespace** (0.19.3). An NBSP
+  inside a selector stays part of it: `[a="x<NBSP>y"]` was rewritten to
+  `[a="x y"]`, and `a<NBSP>b` became a descendant selector. Output containing one
+  now carries `@charset "UTF-8";`.
+- **meaning:** **whitespace inside a quoted attribute value is kept**:
+  `[a="x   y"]` used to collapse to `[a="x y"]` (0.19.3). A quoted `(` or `[`
+  no longer swallows the rest of the selector list.
+- **meaning:** **an empty at-rule survives compression**: `@font-face {}`
+  compressed to nothing and is now `@font-face{}` (0.19.0).
+- **meaning:** **plain `.css` loaded through `@use`/`@import` keeps rules it used
+  to drop** (`@keyframes`, a custom `@function`, an at-rule nested in a style
+  rule), and stops hoisting at-rules out of a keyframe frame (0.19.0).
+- **meaning:** **legacy color edge cases follow dart**. A degenerate color such
+  as `hsl(0, 100%, calc(-infinity * 1%))` is a color rather than a string, so
+  `color.mix()` on it gives `hsl(0, 0%, 0%)` instead of `rgb(NaN%, NaN%, NaN%)`.
+  `color.change()` on an hsl color no longer flips its hue (0.19.0).
+- **Compressed colors and numbers serialize the way dart's do**, about 1,400
+  cases (0.19.0). For example, `oklab(1% 0 0)` compresses to `oklab(.01 0 0)`.
+- **The `rgb()`/`hsl()` form choice follows dart's rules** in both styles
+  (0.19.0).
+- **A calc writes `+ -n` as `- n` in compressed output too** (0.17.0).
+- **A `round()` that cannot be folded is a calculation**, so compressed output
+  drops the space after its commas (0.19.0).
+- `@import` modifiers are written verbatim, a newline in a complex selector puts
+  the next one on its own line, and compressed `[a="x y" i]` drops the space
+  before `i` (0.19.0, 0.19.3).
+
+### Changed (diagnostics)
+
+- **New warning: `bogus-combinators`** (0.17.0), when a rule whose selector has
+  a repeated or leading combinator (`a > + b`) is dropped. sasso already dropped
+  those rules, as dart does, but said nothing; the warning is the only sign that
+  the CSS lost them. Use `silence_deprecations: [:"bogus-combinators"]` to
+  silence it.
+- **New deprecation: `color-module-compat`** (0.19.0), e.g. for
+  `color.grayscale(1)`.
+- **CSS filter functions no longer raise `global-builtin`**: for example,
+  `filter: grayscale(1)` (0.18.0).
+- **Messages follow dart's wording** for a removed `sass:color` member, a type
+  error, which now names the parameter (`$number: (1 2) is not a number.`), and
+  a missing attribute operator (0.19.0, 0.19.3).
+- **A stack frame names a path relative to the working directory**, not a
+  `file://` URL (0.19.0).
+
+### Changed (build)
+
+- **The extension depends on the core with `default-features = false`.** Core
+  0.19.0 added a default-on `cli-clock` feature that pulls `chrono` into Windows
+  builds for the CLI's `--watch` timestamp. The library never uses it, so the
+  native extension keeps its zero-dependency build.
+
+### Performance
+
+The library compile path is faster in every core release in this range, with
+byte-identical output in the releases that only make it faster (0.20.0, 0.21.0).
+Measured as instruction counts on the core's real-world corpus, 0.20.0 alone cut
+vuetify by 24%, bulma by 21% and bootstrap by 8%. 0.21.0 cut uswds by 41%, by
+speeding up variables reached through `@use … as *`.
+
 ## [0.14.1] - 2026-10-30
 
 _A gem-only patch. The bundled core compiler is still `sasso` 0.14.0, so
