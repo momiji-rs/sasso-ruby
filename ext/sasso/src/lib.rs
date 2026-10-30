@@ -31,16 +31,20 @@ fn flag(ruby: &Ruby, opts: RHash, key: &str, default: bool) -> Result<bool, Erro
     Ok(opt::<bool>(ruby, opts, key)?.unwrap_or(default))
 }
 
-/// Read `load_paths` as filesystem paths.
-fn load_paths(ruby: &Ruby, opts: RHash) -> Result<Vec<PathBuf>, Error> {
-    match opt::<RArray>(ruby, opts, "load_paths")? {
-        Some(a) => Ok(a
-            .to_vec::<String>()?
-            .into_iter()
-            .map(PathBuf::from)
-            .collect()),
+/// Read an optional list of strings; a missing key is an empty list.
+fn strings(ruby: &Ruby, opts: RHash, key: &str) -> Result<Vec<String>, Error> {
+    match opt::<RArray>(ruby, opts, key)? {
+        Some(a) => a.to_vec::<String>(),
         None => Ok(Vec::new()),
     }
+}
+
+/// Read `load_paths` as filesystem paths.
+fn load_paths(ruby: &Ruby, opts: RHash) -> Result<Vec<PathBuf>, Error> {
+    Ok(strings(ruby, opts, "load_paths")?
+        .into_iter()
+        .map(PathBuf::from)
+        .collect())
 }
 
 /// One `@warn` / `@debug` / deprecation diagnostic, copied out of the borrowed
@@ -144,6 +148,11 @@ fn native_compile(ruby: &Ruby, source: String, opts: RHash) -> Result<RArray, Er
     if flag(ruby, opts, "quiet_deps", false)? {
         copts = copts.with_quiet_deps(importer.dependencies());
     }
+
+    // dart-sass `silenceDeprecations`: dropped by id before the per-id cap, so
+    // a silenced deprecation leaves no "N repetitive warnings omitted" footer.
+    // Ids the core never emits are accepted and do nothing, as in dart.
+    copts = copts.with_silenced_deprecations(strings(ruby, opts, "silence_deprecations")?);
 
     // "stderr" leaves `Options::warn` unset, which is what makes the core print
     // its own dart-style block — the default path installs no handler and pays

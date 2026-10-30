@@ -37,6 +37,7 @@ module Sasso
                             ?url: String?, ?alert_ascii: bool,
                             ?source_map: bool, ?source_map_include_sources: bool,
                             ?charset: bool, ?quiet: bool, ?quiet_deps: bool,
+                            ?silence_deprecations: Array[String | Symbol],
                             ?on_warn: (^(warning) -> void)?) -> (String | CompileResult)
   def self.compile: (untyped path, **untyped opts) -> (String | CompileResult)
 end
