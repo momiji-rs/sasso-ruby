@@ -9,6 +9,17 @@ the gem independently of the crate.
 
 ## [Unreleased]
 
+### Added
+
+- **Ruby 4.0 support.** The precompiled platform gems now carry a Ruby 4.0
+  binary, and CI tests against 4.0. Previously 4.0 fell back to the source gem,
+  which did not compile.
+
+### Fixed
+
+- **The source gem compiles on Ruby 4.0.** The extension now builds against
+  magnus 0.8 instead of 0.7, whose bindings do not match the Ruby 4.0 headers.
+
 ## [0.14.0] - 2026-09-17
 
 _The gem version now tracks the core compiler's. It jumps 0.2.7 → 0.14.0 to meet
