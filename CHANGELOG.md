@@ -9,6 +9,11 @@ the gem independently of the crate.
 
 ## [Unreleased]
 
+## [0.14.1] - 2026-10-30
+
+_A gem-only patch. The bundled core compiler is still `sasso` 0.14.0, so
+`Sasso::CORE_VERSION` reports 0.14.0 and the CSS output is unchanged._
+
 ### Added
 
 - **Ruby 4.0 support.** The precompiled platform gems now carry a Ruby 4.0
